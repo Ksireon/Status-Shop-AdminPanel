@@ -59,7 +59,7 @@ export default function SystemPage() {
         supabaseError = new Error('Supabase not configured')
       }
       
-      const supabaseStatus = {
+      const supabaseStatus: SystemStatus['supabase'] = {
         status: supabaseError ? 'error' : 'connected',
         responseTime: Date.now() - supabaseStart,
         lastCheck: new Date().toISOString(),
@@ -67,8 +67,8 @@ export default function SystemPage() {
 
       // Check API health
       const apiStart = Date.now()
-      let apiStatus = {
-        status: 'healthy' as 'healthy' | 'error',
+      let apiStatus: SystemStatus['api'] = {
+        status: 'healthy',
         responseTime: 0,
         lastCheck: new Date().toISOString(),
       }
