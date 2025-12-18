@@ -100,6 +100,28 @@ export default function OrderDetailPage() {
     cancelled: 'bg-red-100 text-red-800',
   }
 
+  const getItemName = (obj: Record<string, unknown>) => {
+    const raw = obj['name']
+    if (raw && typeof raw === 'object') {
+      const en = (raw as Record<string, unknown>)['en']
+      const uk = (raw as Record<string, unknown>)['uk']
+      if (typeof en === 'string' && en) return en
+      if (typeof uk === 'string' && uk) return uk
+      return ''
+    }
+    return typeof raw === 'string' ? raw : ''
+  }
+
+  const getNumber = (obj: Record<string, unknown>, key: string) => {
+    const v = obj[key]
+    return typeof v === 'number' ? v : Number(v ?? 0)
+  }
+
+  const getString = (obj: Record<string, unknown>, key: string) => {
+    const v = obj[key]
+    return typeof v === 'string' ? v : String(v ?? '')
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -250,22 +272,27 @@ export default function OrderDetailPage() {
               Order Items ({order.items.length})
             </h3>
             <div className="space-y-4">
-              {order.items.map((item, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900">
-                        {typeof item.name === 'object' ? item.name.en || item.name.uk : item.name}
-                      </h4>
-                      <p className="text-sm text-gray-500 mt-1">Tag: {item.tag}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">₴{item.price.toFixed(2)}</p>
-                      <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+              {order.items.map((item, index) => {
+                const obj = item as Record<string, unknown>
+                const name = getItemName(obj)
+                const tag = getString(obj, 'tag')
+                const price = getNumber(obj, 'price')
+                const quantity = getNumber(obj, 'quantity')
+                return (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900">{name}</h4>
+                        <p className="text-sm text-gray-500 mt-1">Tag: {tag}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-gray-900">₴{price.toFixed(2)}</p>
+                        <p className="text-sm text-gray-500">Qty: {quantity}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>

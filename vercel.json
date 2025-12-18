@@ -1,0 +1,8 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci || npm install",
+  "outputDirectory": ".next",
+  "env": {
+    "NEXT_TELEMETRY_DISABLED": "1"
+  }
+}
