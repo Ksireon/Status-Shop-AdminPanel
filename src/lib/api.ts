@@ -31,7 +31,7 @@ export interface Order {
   status: string
   items: Array<{
     tag: string
-    name: Record<string, any>
+    name: Record<string, unknown>
     price: number
     quantity: number
   }>
@@ -40,8 +40,8 @@ export interface Order {
 
 export interface Product {
   id: number
-  name: Record<string, any>
-  description: Record<string, any>
+  name: Record<string, unknown>
+  description: Record<string, unknown>
   type: string
   image: string
   color: string
@@ -56,7 +56,7 @@ export interface CartItem {
   id: number
   user_id: string
   tag: string
-  data: Record<string, any>
+  data: Record<string, unknown>
   created_at: string
 }
 
@@ -170,7 +170,7 @@ class ApiService {
         return { status: 'ok', timestamp: new Date().toISOString() }
       }
       throw new Error(`Health check failed: ${response.status}`)
-    } catch (error) {
+    } catch {
       return { status: 'error', timestamp: new Date().toISOString() }
     }
   }

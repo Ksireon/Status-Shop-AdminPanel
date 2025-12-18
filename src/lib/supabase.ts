@@ -51,8 +51,8 @@ export type Database = {
       products: {
         Row: {
           id: number
-          name: Record<string, any>
-          description: Record<string, any>
+          name: Record<string, unknown>
+          description: Record<string, unknown>
           type: string
           image: string
           color: string
@@ -64,8 +64,8 @@ export type Database = {
         }
         Insert: {
           id?: number
-          name: Record<string, any>
-          description: Record<string, any>
+          name: Record<string, unknown>
+          description: Record<string, unknown>
           type: string
           image: string
           color: string
@@ -77,8 +77,8 @@ export type Database = {
         }
         Update: {
           id?: number
-          name?: Record<string, any>
-          description?: Record<string, any>
+          name?: Record<string, unknown>
+          description?: Record<string, unknown>
           type?: string
           image?: string
           color?: string
@@ -105,7 +105,7 @@ export type Database = {
           payment_method: string
           total: number
           status: string
-          items: Record<string, any>[]
+          items: Record<string, unknown>[]
           created_at: string
         }
         Insert: {
@@ -123,7 +123,7 @@ export type Database = {
           payment_method: string
           total: number
           status?: string
-          items: Record<string, any>[]
+          items: Record<string, unknown>[]
           created_at?: string
         }
         Update: {
@@ -141,7 +141,7 @@ export type Database = {
           payment_method?: string
           total?: number
           status?: string
-          items?: Record<string, any>[]
+          items?: Record<string, unknown>[]
           created_at?: string
         }
       }
@@ -150,21 +150,21 @@ export type Database = {
           id: number
           user_id: string
           tag: string
-          data: Record<string, any>
+          data: Record<string, unknown>
           created_at: string
         }
         Insert: {
           id?: number
           user_id: string
           tag: string
-          data: Record<string, any>
+          data: Record<string, unknown>
           created_at?: string
         }
         Update: {
           id?: number
           user_id?: string
           tag?: string
-          data?: Record<string, any>
+          data?: Record<string, unknown>
           created_at?: string
         }
       }

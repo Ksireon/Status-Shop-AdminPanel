@@ -9,7 +9,6 @@ import {
   ShoppingCart,
   Package,
   BarChart3,
-  Settings,
   Menu,
   X,
   Activity,

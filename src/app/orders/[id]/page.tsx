@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { supabase } from '@/lib/supabase'
 import { Tables } from '@/lib/supabase'
@@ -17,13 +17,7 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (orderId) {
-      fetchOrder()
-    }
-  }, [orderId])
-
-  const fetchOrder = async () => {
+  const fetchOrder = useCallback(async () => {
     try {
       setLoading(true)
       if (
@@ -47,7 +41,13 @@ export default function OrderDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [orderId])
+
+  useEffect(() => {
+    if (orderId) {
+      fetchOrder()
+    }
+  }, [orderId, fetchOrder])
 
   const updateOrderStatus = async (newStatus: string) => {
     try {

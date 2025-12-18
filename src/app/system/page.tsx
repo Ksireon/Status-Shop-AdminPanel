@@ -47,14 +47,14 @@ export default function SystemPage() {
     try {
       // Check Supabase connection
       const supabaseStart = Date.now()
-      let supabaseError: any = null
+      let supabaseError: Error | null = null
       if (
         process.env.NEXT_PUBLIC_SUPABASE_URL &&
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
         !String(process.env.NEXT_PUBLIC_SUPABASE_URL).includes('example.supabase.co')
       ) {
         const { error } = await supabase.from('profiles').select('id').limit(1)
-        supabaseError = error
+        supabaseError = (error as unknown as Error) || null
       } else {
         supabaseError = new Error('Supabase not configured')
       }
@@ -80,7 +80,7 @@ export default function SystemPage() {
           responseTime: Date.now() - apiStart,
           lastCheck: new Date().toISOString(),
         }
-      } catch (error) {
+      } catch {
         apiStatus = {
           status: 'error',
           responseTime: Date.now() - apiStart,

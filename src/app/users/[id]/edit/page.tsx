@@ -52,7 +52,8 @@ export default function UserEditPage() {
     if (userId) load()
   }, [userId])
 
-  const setField = (k: keyof Profile, v: any) => setForm((f) => ({ ...f, [k]: v }))
+  const setField = <K extends keyof Profile>(k: K, v: Profile[K]) =>
+    setForm((f) => ({ ...f, [k]: v }))
 
   const onSave = async () => {
     try {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { supabase } from '@/lib/supabase'
 import { Tables } from '@/lib/supabase'
@@ -17,13 +17,7 @@ export default function UserDetailPage() {
   const [user, setUser] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (userId) {
-      fetchUser()
-    }
-  }, [userId])
-
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -39,7 +33,13 @@ export default function UserDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId])
+
+  useEffect(() => {
+    if (userId) {
+      fetchUser()
+    }
+  }, [userId, fetchUser])
 
   if (loading) {
     return (

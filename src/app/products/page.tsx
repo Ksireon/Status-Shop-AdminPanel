@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { supabase } from '@/lib/supabase'
 import { Tables } from '@/lib/supabase'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Edit, Trash2, Eye, Plus } from 'lucide-react'
 
 type Product = Tables['products']['Row']
@@ -86,13 +87,22 @@ export default function ProductsPage() {
                   <div key={product.id} className="card hover-lift border border-gray-200">
                     <div className="p-4">
                       <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-200">
-                        <img
+                        <Image
                           src={product.image}
-                          alt={typeof product.name === 'object' ? product.name.en || product.name.uk : product.name}
+                          alt={
+                            typeof product.name === 'object'
+                              ? ((product.name as Record<string, unknown>)['en'] as string) ||
+                                ((product.name as Record<string, unknown>)['uk'] as string) ||
+                                ''
+                              : (product.name as string)
+                          }
+                          width={800}
+                          height={400}
                           className="h-48 w-full object-cover"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement
-                            target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNTBMMTUwIDEwMEgxMDBWMTUwSDUwVjEwMEgxMDBWNTBaIiBmaWxsPSIjOUI5QjlCIi8+Cjwvc3ZnPgo='
+                            target.src =
+                              'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNTBMMTUwIDEwMEgxMDBWMTUwSDUwVjEwMEgxMDBWNTBaIiBmaWxsPSIjOUI5QjlCIi8+Cjwvc3ZnPgo='
                           }}
                         />
                       </div>

@@ -54,7 +54,8 @@ export default function ProductEditPage() {
     if (productId) load()
   }, [productId])
 
-  const setField = (k: keyof ProductRow, v: any) => setForm((f) => ({ ...f, [k]: v }))
+  const setField = <K extends keyof ProductRow>(k: K, v: ProductRow[K]) =>
+    setForm((f) => ({ ...f, [k]: v }))
 
   const onSave = async () => {
     try {

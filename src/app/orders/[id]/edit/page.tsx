@@ -54,7 +54,8 @@ export default function OrderEditPage() {
     if (orderId) load()
   }, [orderId])
 
-  const setField = (k: keyof OrderRow, v: any) => setForm((f) => ({ ...f, [k]: v }))
+  const setField = <K extends keyof OrderRow>(k: K, v: OrderRow[K]) =>
+    setForm((f) => ({ ...f, [k]: v }))
 
   const onSave = async () => {
     try {

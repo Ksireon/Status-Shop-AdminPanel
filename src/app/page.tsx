@@ -1,6 +1,7 @@
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { StatsCard } from '@/components/dashboard/stats-card'
 import { RecentOrders } from '@/components/dashboard/recent-orders'
+import Link from 'next/link'
 import {
   Users,
   ShoppingCart,
@@ -134,7 +135,7 @@ export default async function DashboardPage() {
               Quick Actions
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <a
+              <Link
                 href="/users"
                 className="relative block w-full border-2 border-gray-300 border-dashed rounded-lg p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
@@ -142,8 +143,8 @@ export default async function DashboardPage() {
                 <span className="mt-2 block text-sm font-medium text-gray-900">
                   Manage Users
                 </span>
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/orders"
                 className="relative block w-full border-2 border-gray-300 border-dashed rounded-lg p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
@@ -151,8 +152,8 @@ export default async function DashboardPage() {
                 <span className="mt-2 block text-sm font-medium text-gray-900">
                   Manage Orders
                 </span>
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/products"
                 className="relative block w-full border-2 border-gray-300 border-dashed rounded-lg p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
@@ -160,7 +161,7 @@ export default async function DashboardPage() {
                 <span className="mt-2 block text-sm font-medium text-gray-900">
                   Manage Products
                 </span>
-              </a>
+              </Link>
             </div>
           </div>
         </div>

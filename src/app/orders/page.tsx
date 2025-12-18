@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { supabase } from '@/lib/supabase'
 import { Tables } from '@/lib/supabase'
@@ -30,11 +30,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  useEffect(() => {
-    fetchOrders()
-  }, [statusFilter])
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true)
       if (
@@ -63,32 +59,12 @@ export default function OrdersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter])
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    try {
-      if (
-        !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-        !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-        String(process.env.NEXT_PUBLIC_SUPABASE_URL).includes('example.supabase.co')
-      ) {
-        alert('Supabase не сконфигурирован')
-        return
-      }
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId)
+  useEffect(() => {
+    fetchOrders()
+  }, [statusFilter, fetchOrders])
 
-      if (error) throw error
-      
-      // Refresh orders
-      fetchOrders()
-    } catch (error) {
-      console.error('Error updating order status:', error)
-      alert('Failed to update order status')
-    }
-  }
 
   return (
     <DashboardLayout>
