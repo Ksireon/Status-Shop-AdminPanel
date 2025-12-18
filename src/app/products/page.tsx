@@ -14,6 +14,18 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
 
+  const textFromMulti = (value: unknown): string => {
+    if (typeof value === 'string') return value
+    if (value && typeof value === 'object') {
+      const obj = value as Record<string, unknown>
+      const en = obj['en']
+      const uk = obj['uk']
+      if (typeof en === 'string' && en) return en
+      if (typeof uk === 'string' && uk) return uk
+    }
+    return ''
+  }
+
   useEffect(() => {
     fetchProducts()
   }, [])
@@ -88,30 +100,24 @@ export default function ProductsPage() {
                     <div className="p-4">
                       <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-200">
                         <Image
-                          src={product.image}
-                          alt={
-                            typeof product.name === 'object'
-                              ? ((product.name as Record<string, unknown>)['en'] as string) ||
-                                ((product.name as Record<string, unknown>)['uk'] as string) ||
-                                ''
-                              : (product.name as string)
+                          src={
+                            product.image ||
+                            'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNTBMMTUwIDEwMEgxMDBWMTUwSDUwVjEwMEgxMDBWNTBaIiBmaWxsPSIjOUI5QjlCIi8+Cjwvc3ZnPgo='
                           }
+                          alt={textFromMulti(product.name)}
                           width={800}
                           height={400}
                           className="h-48 w-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement
-                            target.src =
-                              'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNTBMMTUwIDEwMEgxMDBWMTUwSDUwVjEwMEgxMDBWNTBaIiBmaWxsPSIjOUI5QjlCIi8+Cjwvc3ZnPgo='
-                          }}
+                          unoptimized
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                         />
                       </div>
                       <div className="mt-4">
                         <h3 className="text-lg font-medium text-gray-900">
-                          {typeof product.name === 'object' ? product.name.en || product.name.uk : product.name}
+                          {textFromMulti(product.name)}
                         </h3>
                         <p className="mt-1 text-sm text-gray-500">
-                          {typeof product.description === 'object' ? product.description.en || product.description.uk : product.description}
+                          {textFromMulti(product.description)}
                         </p>
                         <div className="mt-2 flex items-center justify-between">
                           <p className="text-lg font-semibold text-gray-900">
