@@ -93,7 +93,7 @@ export default function SystemPage() {
         api: apiStatus,
       })
     } catch (error) {
-      console.error('Health check failed:', error)
+      console.warn('Health check failed:', error)
     } finally {
       setLoading(false)
     }

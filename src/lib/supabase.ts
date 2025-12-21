@@ -60,6 +60,7 @@ export type Database = {
           meters: number
           size: string
           tag: string
+          category_id: number | null
           created_at: string
         }
         Insert: {
@@ -73,6 +74,7 @@ export type Database = {
           meters: number
           size: string
           tag: string
+          category_id?: number | null
           created_at?: string
         }
         Update: {
@@ -86,6 +88,7 @@ export type Database = {
           meters?: number
           size?: string
           tag?: string
+          category_id?: number | null
           created_at?: string
         }
       }

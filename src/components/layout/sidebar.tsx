@@ -13,6 +13,10 @@ import {
   X,
   Activity,
   Package2,
+  Wallet,
+  Building2,
+  Bell,
+  FileText,
 } from 'lucide-react'
 
 const navigation = [
@@ -23,6 +27,10 @@ const navigation = [
   { name: 'Cart', href: '/cart', icon: Package2 },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'System', href: '/system', icon: Activity },
+  { name: 'Finance', href: '/finance', icon: Wallet },
+  { name: 'Branches', href: '/branches', icon: Building2 },
+  { name: 'Notifications', href: '/notifications', icon: Bell },
+  { name: 'About', href: '/about', icon: FileText },
 ]
 
 export function Sidebar() {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { supabase } from '@/lib/supabase'
 import { Tables } from '@/lib/supabase'
@@ -13,6 +13,10 @@ type Product = Tables['products']['Row']
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [query, setQuery] = useState<string>('')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [categoryFilter, setCategoryFilter] = useState<number | 'all'>('all')
+  const [categories, setCategories] = useState<Array<{ id: number; name: string }>>([])
 
   const textFromMulti = (value: unknown): string => {
     if (typeof value === 'string') return value
@@ -26,11 +30,7 @@ export default function ProductsPage() {
     return ''
   }
 
-  useEffect(() => {
-    fetchProducts()
-  }, [])
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -39,13 +39,42 @@ export default function ProductsPage() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setProducts(data || [])
+      let list = data || []
+      if (query.trim()) {
+        const q = query.toLowerCase()
+        list = list.filter(
+          (p) =>
+            textFromMulti(p.name).toLowerCase().includes(q) ||
+            textFromMulti(p.description).toLowerCase().includes(q) ||
+            (p.tag || '').toLowerCase().includes(q),
+        )
+      }
+      if (typeFilter !== 'all') {
+        list = list.filter((p) => (p.type || '') === typeFilter)
+      }
+      if (categoryFilter !== 'all') {
+        list = list.filter((p) => (p.category_id ?? null) === categoryFilter)
+      }
+      setProducts(list)
+      const { data: cdata } = await supabase.from('categories').select('*').order('sort_order', { ascending: true })
+      const mapped = (cdata || []).map((c: any) => ({
+        id: c.id as number,
+        name:
+          typeof c.name === 'object'
+            ? (c.name.en || c.name.uk || '')
+            : String(c.name || ''),
+      }))
+      setCategories(mapped)
     } catch (error) {
-      console.error('Error fetching products:', error)
+      console.warn('Error fetching products:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [query, typeFilter, categoryFilter])
+
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
 
   const deleteProduct = async (productId: number) => {
     if (confirm('Are you sure you want to delete this product?')) {
@@ -58,7 +87,7 @@ export default function ProductsPage() {
         if (error) throw error
         fetchProducts()
       } catch (error) {
-        console.error('Error deleting product:', error)
+        console.warn('Error deleting product:', error)
         alert('Failed to delete product')
       }
     }
@@ -82,6 +111,48 @@ export default function ProductsPage() {
               <Plus className="h-4 w-4 mr-2" />
               Add New Product
             </Link>
+          </div>
+        </div>
+        <div className="card p-4">
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-sm text-gray-700">Search</label>
+              <input
+                className="mt-1 block w-full rounded-md border-gray-300"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Name, description or tag"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-700">Type</label>
+              <select
+                className="mt-1 block w-40 rounded-md border-gray-300"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="all">All</option>
+                {Array.from(new Set(products.map((p) => p.type).filter(Boolean))).map((t) => (
+                  <option key={t} value={t || ''}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-gray-700">Category</label>
+              <select
+                className="mt-1 block w-52 rounded-md border-gray-300"
+                value={categoryFilter === 'all' ? 'all' : String(categoryFilter)}
+                onChange={(e) => setCategoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              >
+                <option value="all">All</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <button className="btn-primary" onClick={fetchProducts}>Apply</button>
           </div>
         </div>
 
@@ -119,13 +190,20 @@ export default function ProductsPage() {
                         <p className="mt-1 text-sm text-gray-500">
                           {textFromMulti(product.description)}
                         </p>
-                        <div className="mt-2 flex items-center justify-between">
+                        <div className="mt-3 flex items-center justify-between">
                           <p className="text-lg font-semibold text-gray-900">
-                            ₴{product.price.toFixed(2)}
+                            UZS {Number(product.price).toLocaleString()}
                           </p>
-                          <span className="text-sm text-gray-500">
-                            {product.type}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                              {product.type}
+                            </span>
+                            {product.category_id && (
+                              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                                {categories.find((c) => c.id === product.category_id)?.name || 'Category'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="mt-2 text-sm text-gray-500">
                           <p>Size: {product.size}</p>

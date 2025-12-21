@@ -23,7 +23,9 @@ export default function ProductEditPage() {
     meters: 0,
     image: '',
     tag: '',
+    category_id: null,
   })
+  const [categories, setCategories] = useState<Array<{ id: number; name: string }>>([])
 
   useEffect(() => {
     const load = async () => {
@@ -44,8 +46,17 @@ export default function ProductEditPage() {
           .single()
         if (error) throw error
         setForm(data || {})
+        const { data: cdata } = await supabase.from('categories').select('*').order('sort_order', { ascending: true })
+        const mapped = (cdata || []).map((c: any) => ({
+          id: c.id as number,
+          name:
+            typeof c.name === 'object'
+              ? (c.name.en || c.name.uk || '')
+              : String(c.name || ''),
+        }))
+        setCategories(mapped)
       } catch (e) {
-        console.error('Failed to load product', e)
+        console.warn('Failed to load product', e)
         alert('Не удалось загрузить товар')
       } finally {
         setLoading(false)
@@ -79,13 +90,14 @@ export default function ProductEditPage() {
           color: form.color ?? '',
           meters: Number(form.meters ?? 0),
           image: form.image ?? '',
+          category_id: form.category_id ?? null,
         })
         .eq('id', productId)
       if (error) throw error
       router.push('/products')
       router.refresh()
     } catch (e) {
-      console.error('Failed to save product', e)
+      console.warn('Failed to save product', e)
       alert('Не удалось сохранить товар')
     } finally {
       setSaving(false)
@@ -133,6 +145,19 @@ export default function ProductEditPage() {
                     }
                   }}
                 />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Category</label>
+                <select
+                  className="mt-1 block w-full rounded-md border-gray-300"
+                  value={form.category_id ?? ''}
+                  onChange={(e) => setField('category_id', e.target.value ? Number(e.target.value) : null)}
+                >
+                  <option value="">—</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="text-sm text-gray-700">Price</label>

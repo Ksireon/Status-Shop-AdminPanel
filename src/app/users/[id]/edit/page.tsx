@@ -67,7 +67,7 @@ export default function UserEditPage() {
         return
       }
       const { error } = await supabase
-        .from('profiles')
+        .from('users')
         .update({
           email: form.email ?? '',
           name: form.name ?? '',

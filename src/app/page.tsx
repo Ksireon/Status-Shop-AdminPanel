@@ -12,7 +12,7 @@ import {
 async function getDashboardData() {
   try {
     if (
-      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      !process.env.NEXT_PUBLIC_SUPABASE_URL || 
       !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
       process.env.NEXT_PUBLIC_SUPABASE_URL.includes('example.supabase.co')
     ) {
@@ -22,11 +22,11 @@ async function getDashboardData() {
         productsCount: 0,
         totalRevenue: 0,
         completedOrders: 0,
+        avgCheck: 0,
       recentOrders: [],
     }
     }
     const { supabase } = await import('@/lib/supabase')
-    // Get users count
     const { count: usersCount, error: usersError } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
@@ -60,6 +60,7 @@ async function getDashboardData() {
 
     const totalRevenue = orders?.reduce((sum, order) => sum + Number(order.total), 0) || 0
     const completedOrders = orders?.filter(order => order.status === 'completed').length || 0
+    const avgCheck = (orders?.length || 0) ? totalRevenue / (orders?.length || 1) : 0
 
     return {
       usersCount: usersCount || 0,
@@ -68,6 +69,7 @@ async function getDashboardData() {
       totalRevenue,
       completedOrders,
       recentOrders: recentOrders || [],
+      avgCheck,
     }
   } catch (error) {
     console.error('Error fetching dashboard data:', error)
@@ -77,6 +79,7 @@ async function getDashboardData() {
       productsCount: 0,
       totalRevenue: 0,
       completedOrders: 0,
+      avgCheck: 0,
       recentOrders: [],
     }
   }
@@ -121,6 +124,14 @@ export default async function DashboardPage() {
             value={`UZS ${data.totalRevenue.toFixed(2)}`}
             icon={DollarSign}
           />
+          <StatsCard
+            title="Avg Check"
+            value={`UZS ${data.avgCheck.toFixed(0)}`}
+          />
+          <StatsCard
+            title="Completed Orders"
+            value={data.completedOrders}
+          />
         </div>
 
         {/* Recent Orders */}
@@ -160,6 +171,24 @@ export default async function DashboardPage() {
                 <Package className="mx-auto h-12 w-12 text-gray-400" />
                 <span className="mt-2 block text-sm font-medium text-gray-900">
                   Manage Products
+                </span>
+              </Link>
+              <Link
+                href="/analytics"
+                className="relative block w-full border-2 border-gray-300 border-dashed rounded-lg p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
+                <span className="mt-2 block text-sm font-medium text-gray-900">
+                  Sales Analytics
+                </span>
+              </Link>
+              <Link
+                href="/finance"
+                className="relative block w-full border-2 border-gray-300 border-dashed rounded-lg p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
+                <span className="mt-2 block text-sm font-medium text-gray-900">
+                  Finance Report
                 </span>
               </Link>
             </div>

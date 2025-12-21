@@ -37,7 +37,7 @@ export default function OrderDetailPage() {
       if (error) throw error
       setOrder(data)
     } catch (error) {
-      console.error('Error fetching order:', error)
+      console.warn('Error fetching order:', error)
     } finally {
       setLoading(false)
     }
@@ -67,7 +67,7 @@ export default function OrderDetailPage() {
       if (error) throw error
       fetchOrder()
     } catch (error) {
-      console.error('Error updating order status:', error)
+      console.warn('Error updating order status:', error)
       alert('Failed to update order status')
     }
   }
@@ -258,7 +258,7 @@ export default function OrderDetailPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Total Amount</p>
-                <p className="mt-1 text-sm text-gray-900 font-semibold">₴{order.total.toFixed(2)}</p>
+                <p className="mt-1 text-sm text-gray-900 font-semibold">UZS {Number(order.total).toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -286,7 +286,7 @@ export default function OrderDetailPage() {
                         <p className="text-sm text-gray-500 mt-1">Tag: {tag}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">₴{price.toFixed(2)}</p>
+                        <p className="text-sm font-medium text-gray-900">UZS {Number(price).toLocaleString()}</p>
                         <p className="text-sm text-gray-500">Qty: {quantity}</p>
                       </div>
                     </div>

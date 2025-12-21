@@ -29,6 +29,11 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [branchFilter, setBranchFilter] = useState<string>('all')
+  const [clientQuery, setClientQuery] = useState<string>('')
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
+  const [branches, setBranches] = useState<string[]>([])
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -49,21 +54,39 @@ export default function OrdersPage() {
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter)
       }
+      if (branchFilter !== 'all') {
+        query = query.eq('branch', branchFilter)
+      }
+      if (startDate) query = query.gte('created_at', `${startDate}T00:00:00.000Z`)
+      if (endDate) query = query.lte('created_at', `${endDate}T23:59:59.999Z`)
 
       const { data, error } = await query
 
       if (error) throw error
-      setOrders(data || [])
+      let list = data || []
+      if (clientQuery.trim()) {
+        const q = clientQuery.toLowerCase()
+        list = list.filter(
+          (o) =>
+            o.name.toLowerCase().includes(q) ||
+            o.email.toLowerCase().includes(q) ||
+            (o.phone || '').toLowerCase().includes(q),
+        )
+      }
+      setOrders(list)
+      const { data: bdata } = await supabase.from('orders').select('branch').limit(1000)
+      const uniq = Array.from(new Set((bdata || []).map((x: any) => x.branch).filter(Boolean)))
+      setBranches(uniq)
     } catch (error) {
-      console.error('Error fetching orders:', error)
+      console.warn('Error fetching orders:', error)
     } finally {
       setLoading(false)
     }
-  }, [statusFilter])
+  }, [statusFilter, branchFilter, startDate, endDate, clientQuery])
 
   useEffect(() => {
     fetchOrders()
-  }, [statusFilter, fetchOrders])
+  }, [statusFilter, branchFilter, startDate, endDate, clientQuery, fetchOrders])
 
 
   return (
@@ -80,7 +103,7 @@ export default function OrdersPage() {
 
         {/* Filters */}
         <div className="card hover-lift animate-fade-up p-4">
-          <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex flex-wrap gap-4 items-end">
             <div>
               <label htmlFor="status" className="block text-sm font-medium text-gray-700">
                 Filter by Status
@@ -97,6 +120,48 @@ export default function OrdersPage() {
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Branch</label>
+              <select
+                value={branchFilter}
+                onChange={(e) => setBranchFilter(e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300"
+              >
+                <option value="all">All Branches</option>
+                {branches.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Start Date</label>
+              <input
+                type="date"
+                className="mt-1 block w-full rounded-md border-gray-300"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">End Date</label>
+              <input
+                type="date"
+                className="mt-1 block w-full rounded-md border-gray-300"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700">Client (name/email/phone)</label>
+              <input
+                className="mt-1 block w-full rounded-md border-gray-300"
+                value={clientQuery}
+                onChange={(e) => setClientQuery(e.target.value)}
+                placeholder="Search client..."
+              />
             </div>
             <button
               onClick={fetchOrders}
@@ -162,7 +227,7 @@ export default function OrdersPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ₴{order.total.toFixed(2)}
+                            UZS {Number(order.total).toLocaleString()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center space-x-2">
