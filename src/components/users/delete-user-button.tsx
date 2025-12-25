@@ -1,7 +1,6 @@
 'use client'
 
 import { Trash2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 interface DeleteUserButtonProps {
@@ -13,20 +12,15 @@ export function DeleteUserButton({ userId }: DeleteUserButtonProps) {
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this user?')) {
       try {
-        if (
-          !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-          !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-          String(process.env.NEXT_PUBLIC_SUPABASE_URL).includes('example.supabase.co')
-        ) {
-          alert('Supabase не сконфигурирован')
-          return
+        const res = await fetch('/api/users/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId })
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data?.error || 'Delete failed')
         }
-        const { error } = await supabase
-          .from('profiles')
-          .delete()
-          .eq('id', userId)
-        
-        if (error) throw error
         router.refresh()
       } catch (error) {
         console.error('Error deleting user:', error)

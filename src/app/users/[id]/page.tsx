@@ -163,12 +163,15 @@ export default function UserDetailPage() {
                 onClick={async () => {
                   if (confirm('Are you sure you want to delete this user?')) {
                     try {
-                      const { error } = await supabase
-                        .from('profiles')
-                        .delete()
-                        .eq('id', userId)
-                      
-                      if (error) throw error
+                      const res = await fetch('/api/users/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId })
+                      })
+                      if (!res.ok) {
+                        const data = await res.json().catch(() => ({}))
+                        throw new Error(data?.error || 'Delete failed')
+                      }
                       window.location.href = '/users'
                     } catch (error) {
                       console.error('Error deleting user:', error)

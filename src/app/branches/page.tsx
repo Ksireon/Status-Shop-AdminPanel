@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
-import { supabase } from '@/lib/supabase'
 
 type BranchRow = {
   id: string
@@ -33,16 +32,10 @@ export default function BranchesPage() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      if (
-        !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-        !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-        String(process.env.NEXT_PUBLIC_SUPABASE_URL).includes('example.supabase.co')
-      ) {
-        setItems([])
-        return
-      }
-      const { data, error } = await supabase.from('branches').select('*').order('name', { ascending: true })
-      if (error) throw error
+      const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1'
+      const res = await fetch(`${API}/branches`, { cache: 'no-store' })
+      if (!res.ok) throw new Error('Failed to fetch branches')
+      const data = await res.json()
       setItems((data as BranchRow[]) || [])
     } catch (e) {
       console.warn('Branches fetch warning', e)
@@ -69,36 +62,33 @@ export default function BranchesPage() {
 
   const onSave = async () => {
     try {
-      if (
-        !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-        !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-        String(process.env.NEXT_PUBLIC_SUPABASE_URL).includes('example.supabase.co')
-      ) {
-        alert('Supabase не сконфигурирован')
-        return
-      }
+      const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1'
       if (editing?.id) {
-        const { error } = await supabase.from('branches').update({
-          name: form.name,
-          city: form.city,
-          address: form.address,
-          coords: form.coords,
-          phone: form.phone,
-          card_number: form.card_number,
-          manager_user_id: form.manager_user_id,
-        }).eq('id', editing.id)
-        if (error) throw error
-      } else {
-        const { error } = await supabase.from('branches').insert({
-          name: form.name,
-          city: form.city,
-          address: form.address,
-          coords: form.coords,
-          phone: form.phone,
-          card_number: form.card_number,
-          manager_user_id: form.manager_user_id,
+        const res = await fetch(`${API}/branches/${editing.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: form.name,
+            city: form.city,
+            address: form.address,
+            phone: form.phone,
+            card_number: form.card_number
+          })
         })
-        if (error) throw error
+        if (!res.ok) throw new Error('Update branch failed')
+      } else {
+        const res = await fetch(`${API}/branches`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: form.name,
+            city: form.city,
+            address: form.address,
+            phone: form.phone,
+            card_number: form.card_number
+          })
+        })
+        if (!res.ok) throw new Error('Create branch failed')
       }
       onNew()
       fetchData()
@@ -111,8 +101,9 @@ export default function BranchesPage() {
   const onDelete = async (id: string) => {
     if (!confirm('Удалить филиал?')) return
     try {
-      const { error } = await supabase.from('branches').delete().eq('id', id)
-      if (error) throw error
+      const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1'
+      const res = await fetch(`${API}/branches/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Delete branch failed')
       fetchData()
     } catch (e) {
       console.warn('Delete branch warning', e)
