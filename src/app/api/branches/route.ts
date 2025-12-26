@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
@@ -8,7 +9,7 @@ function apiBase() {
   return process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3002/api/v1'
 }
 
-export async function GET() {
+export async function GET(_: NextRequest) {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !serviceKey) return NextResponse.json([], { status: 200 })
@@ -46,7 +47,7 @@ export async function GET() {
   return NextResponse.json(normalized, { status: 200 })
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const body = await req.json()
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
@@ -8,8 +9,8 @@ function apiBase() {
   return process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3002/api/v1'
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
-  const id = params.id
+export async function GET(_: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !serviceKey) return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
@@ -40,8 +41,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   return NextResponse.json(data, { status: 200 })
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const id = params.id
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params
   const body = await req.json()
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -59,8 +60,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json(data, { status: 200 })
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
-  const id = params.id
+export async function DELETE(_: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !serviceKey) return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
