@@ -8,32 +8,28 @@ type BranchRow = {
   name: string
   city?: string
   address?: string
-  coords?: string
   phone?: string
   card_number?: string
-  manager_user_id?: string
 }
 
 export default function BranchesPage() {
   const [items, setItems] = useState<BranchRow[]>([])
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState<BranchRow | null>(null)
-  const [form, setForm] = useState<BranchRow>({
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
     id: '',
     name: '',
     city: '',
     address: '',
-    coords: '',
     phone: '',
-    card_number: '',
-    manager_user_id: '',
+    card_number: ''
   })
 
   const fetchData = async () => {
     try {
       setLoading(true)
-      const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1'
-      const res = await fetch(`${API}/branches`, { cache: 'no-store' })
+      const res = await fetch(`/api/branches`, { cache: 'no-store' })
       if (!res.ok) throw new Error('Failed to fetch branches')
       const data = await res.json()
       setItems((data as BranchRow[]) || [])
@@ -52,19 +48,30 @@ export default function BranchesPage() {
 
   const onEdit = (row: BranchRow) => {
     setEditing(row)
-    setForm(row)
+    setForm({
+      id: row.id || '',
+      name: row.name || '',
+      city: row.city || '',
+      address: row.address || '',
+      phone: row.phone || '',
+      card_number: row.card_number || ''
+    })
   }
 
   const onNew = () => {
     setEditing(null)
-    setForm({ id: '', name: '', city: '', address: '', coords: '', phone: '', card_number: '', manager_user_id: '' })
+    setForm({ id: '', name: '', city: '', address: '', phone: '', card_number: '' })
   }
 
   const onSave = async () => {
     try {
-      const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1'
+      if (!form.name.trim()) {
+        alert('Укажите название филиала')
+        return
+      }
+      setSaving(true)
       if (editing?.id) {
-        const res = await fetch(`${API}/branches/${editing.id}`, {
+        const res = await fetch(`/api/branches/${editing.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -77,7 +84,7 @@ export default function BranchesPage() {
         })
         if (!res.ok) throw new Error('Update branch failed')
       } else {
-        const res = await fetch(`${API}/branches`, {
+        const res = await fetch(`/api/branches`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -95,14 +102,15 @@ export default function BranchesPage() {
     } catch (e) {
       console.warn('Save branch warning', e)
       alert('Не удалось сохранить филиал')
+    } finally {
+      setSaving(false)
     }
   }
 
   const onDelete = async (id: string) => {
     if (!confirm('Удалить филиал?')) return
     try {
-      const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1'
-      const res = await fetch(`${API}/branches/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/branches/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Delete branch failed')
       fetchData()
     } catch (e) {
@@ -166,10 +174,6 @@ export default function BranchesPage() {
                 <input className="mt-1 block w-full rounded-md border-gray-300" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Coords</label>
-                <input className="mt-1 block w-full rounded-md border-gray-300" value={form.coords} onChange={(e) => setForm({ ...form, coords: e.target.value })} />
-              </div>
-              <div>
                 <label className="text-sm text-gray-700">Phone</label>
                 <input className="mt-1 block w-full rounded-md border-gray-300" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
@@ -177,13 +181,9 @@ export default function BranchesPage() {
                 <label className="text-sm text-gray-700">Card Number</label>
                 <input className="mt-1 block w-full rounded-md border-gray-300" value={form.card_number} onChange={(e) => setForm({ ...form, card_number: e.target.value })} />
               </div>
-              <div>
-                <label className="text-sm text-gray-700">Manager User ID</label>
-                <input className="mt-1 block w-full rounded-md border-gray-300" value={form.manager_user_id} onChange={(e) => setForm({ ...form, manager_user_id: e.target.value })} />
-              </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <button className="btn-primary" onClick={onSave}>Save</button>
+              <button className="btn-primary" onClick={onSave} disabled={saving}>Save</button>
               <button className="btn-secondary" onClick={onNew}>Cancel</button>
             </div>
           </div>
