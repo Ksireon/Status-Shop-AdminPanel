@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,6 +11,9 @@ function apiBase() {
 }
 
 export async function GET(_: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const store = await cookies()
+  const role = store.get('admin_role')?.value || null
+  if (role !== 'owner') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { id } = await ctx.params
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -42,6 +46,9 @@ export async function GET(_: NextRequest, ctx: { params: Promise<{ id: string }>
 }
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const store = await cookies()
+  const role = store.get('admin_role')?.value || null
+  if (role !== 'owner') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { id } = await ctx.params
   const body = await req.json()
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -61,6 +68,9 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 }
 
 export async function DELETE(_: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const store = await cookies()
+  const role = store.get('admin_role')?.value || null
+  if (role !== 'owner') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { id } = await ctx.params
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY

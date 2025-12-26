@@ -20,9 +20,11 @@ function getRole(req: NextRequest): 'owner' | 'director' | 'manager' | null {
 
 function isAllowed(pathname: string, role: 'owner' | 'director' | 'manager') {
   if (role === 'owner') return true
-  const allowedDirector = ['/', '/orders', '/finance', '/branches']
-  const allowedManager = ['/', '/orders']
-  const dynamicAllowed = (p: string) => p.startsWith('/orders/')
+  const allowedDirector = ['/', '/orders', '/finance', '/products', '/analytics']
+  const allowedManager = ['/', '/orders', '/products']
+  const dynamicAllowed = (p: string) =>
+    p.startsWith('/orders/') ||
+    (p.startsWith('/products/') && !p.endsWith('/edit') && !p.endsWith('/new'))
   if (role === 'director') {
     return allowedDirector.includes(pathname) || dynamicAllowed(pathname)
   }
@@ -54,4 +56,3 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: ['/((?!api/).*)'],
 }
-

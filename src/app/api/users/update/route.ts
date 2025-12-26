@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   try {
+    const store = await cookies()
+    const role = store.get('admin_role')?.value || null
+    if (role !== 'owner') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     const body = await req.json()
     const userId = String(body.userId || '')
     const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -44,4 +50,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: e?.message || 'Unknown error' }, { status: 500 })
   }
 }
-

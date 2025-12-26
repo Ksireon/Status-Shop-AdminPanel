@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
+import { fileURLToPath } from "url";
+import path from "path";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  turbopack: {
+    root: path.resolve(path.dirname(fileURLToPath(import.meta.url))),
+  },
 };
 
 export default nextConfig;

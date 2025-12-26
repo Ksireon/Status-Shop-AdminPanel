@@ -15,21 +15,15 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      const e = email.trim().toLowerCase()
-      const p = password.trim()
-      let role: 'owner' | 'director' | 'manager' | null = null
-      if (e === 'owner@status.shop' && p === 'status1234') role = 'owner'
-      if (e === 'director@status.shop' && p === 'status4321') role = 'director'
-      if (e === 'manager@status.shop' && p === 'status2026') role = 'manager'
-      if (!role) {
-        setError('Неверный логин или пароль')
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data?.error || 'Ошибка входа')
         return
-      }
-      const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString()
-      document.cookie = `admin_role=${role}; path=/; expires=${expires}`
-      document.cookie = `admin_email=${encodeURIComponent(e)}; path=/; expires=${expires}`
-      if (role === 'owner') {
-        document.cookie = `active_branch=all; path=/; expires=${expires}`
       }
       router.push('/')
       router.refresh()

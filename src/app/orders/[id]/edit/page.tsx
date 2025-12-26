@@ -68,9 +68,10 @@ export default function OrderEditPage() {
         alert('Supabase не сконфигурирован')
         return
       }
-      const { error } = await supabase
-        .from('orders')
-        .update({
+      const res = await fetch(`/api/orders/${orderId}/update`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           status: form.status ?? 'pending',
           delivery_type: form.delivery_type ?? '',
           branch: form.branch ?? '',
@@ -80,9 +81,12 @@ export default function OrderEditPage() {
           name: form.name ?? '',
           email: form.email ?? '',
           phone: form.phone ?? '',
-        })
-        .eq('id', orderId)
-      if (error) throw error
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || 'Update failed')
+      }
       router.push(`/orders/${orderId}`)
       router.refresh()
     } catch (e) {

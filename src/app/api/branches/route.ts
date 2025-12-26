@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,6 +11,9 @@ function apiBase() {
 }
 
 export async function GET(_: NextRequest) {
+  const store = await cookies()
+  const role = store.get('admin_role')?.value || null
+  if (role !== 'owner') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !serviceKey) return NextResponse.json([], { status: 200 })
@@ -48,6 +52,9 @@ export async function GET(_: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const store = await cookies()
+  const role = store.get('admin_role')?.value || null
+  if (role !== 'owner') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const body = await req.json()
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
