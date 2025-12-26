@@ -10,7 +10,7 @@ type ProductRow = Tables['products']['Row']
 export default function ProductEditPage() {
   const router = useRouter()
   const params = useParams()
-  const productId = Number(params.id as string)
+  const productId = String(params.id as string || '')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Partial<ProductRow>>({
@@ -18,14 +18,20 @@ export default function ProductEditPage() {
     description: { en: '' },
     price: 0,
     type: '',
-    size: '',
     color: '',
-    meters: 0,
+    amount: 0,
+    characteristic: '',
     image: '',
     tag: '',
-    category_id: null,
   })
-  const [categories, setCategories] = useState<Array<{ id: number; name: string }>>([])
+  const textFromMulti = (value: unknown): string => {
+    if (typeof value === 'string') return value
+    if (value && typeof value === 'object') {
+      const obj = value as Record<string, unknown>
+      return (String(obj['en'] || obj['uk'] || '')).trim()
+    }
+    return ''
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -46,15 +52,6 @@ export default function ProductEditPage() {
           .single()
         if (error) throw error
         setForm(data || {})
-        const { data: cdata } = await supabase.from('categories').select('*').order('sort_order', { ascending: true })
-        const mapped = (cdata || []).map((c: any) => ({
-          id: c.id as number,
-          name:
-            typeof c.name === 'object'
-              ? (c.name.en || c.name.uk || '')
-              : String(c.name || ''),
-        }))
-        setCategories(mapped)
       } catch (e) {
         console.warn('Failed to load product', e)
         alert('Не удалось загрузить товар')
@@ -79,21 +76,34 @@ export default function ProductEditPage() {
         alert('Supabase не сконфигурирован')
         return
       }
-      const { error } = await supabase
-        .from('products')
-        .update({
-          name: form.name ?? { en: '' },
-          description: form.description ?? { en: '' },
-          price: Number(form.price ?? 0),
-          type: form.type ?? '',
-          size: form.size ?? '',
-          color: form.color ?? '',
-          meters: Number(form.meters ?? 0),
-          image: form.image ?? '',
-          category_id: form.category_id ?? null,
-        })
-        .eq('id', productId)
-      if (error) throw error
+      const base = {
+        name: form.name ?? { en: '' },
+        description: form.description ?? { en: '' },
+        price: Number(form.price ?? 0),
+        type: form.type ?? '',
+        color: form.color ?? '',
+        image: form.image ?? '',
+      }
+      const newCols = { amount: Number(form.amount ?? 0), characteristic: form.characteristic ?? '' }
+      const oldCols = { meters: Number(form.amount ?? 0), size: String(form.characteristic ?? '') }
+      let errMsg: string | null = null
+      {
+        const { error } = await supabase.from('products').update({ ...base, ...newCols }).eq('id', productId)
+        errMsg = error?.message || null
+      }
+      if (errMsg) {
+        const needsFallback =
+          /column .*amount/i.test(errMsg) ||
+          /column .*characteristic/i.test(errMsg) ||
+          /undefined column/i.test(errMsg) ||
+          /does not exist/i.test(errMsg)
+        if (needsFallback) {
+          const { error: e2 } = await supabase.from('products').update({ ...base, ...oldCols }).eq('id', productId)
+          if (e2) throw e2
+        } else {
+          throw new Error(errMsg)
+        }
+      }
       router.push('/products')
       router.refresh()
     } catch (e) {
@@ -119,45 +129,20 @@ export default function ProductEditPage() {
           <div className="bg-white shadow rounded-lg p-6 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-700">Name (JSON)</label>
+                <label className="text-sm text-gray-700">Name</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
-                  value={JSON.stringify(form.name ?? { en: '' })}
-                  onChange={(e) => {
-                    try {
-                      setField('name', JSON.parse(e.target.value))
-                    } catch {
-                      // ignore invalid JSON
-                    }
-                  }}
+                  value={textFromMulti(form.name)}
+                  onChange={(e) => setField('name', { en: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Description (JSON)</label>
+                <label className="text-sm text-gray-700">Description</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
-                  value={JSON.stringify(form.description ?? { en: '' })}
-                  onChange={(e) => {
-                    try {
-                      setField('description', JSON.parse(e.target.value))
-                    } catch {
-                      // ignore invalid JSON
-                    }
-                  }}
+                  value={textFromMulti(form.description)}
+                  onChange={(e) => setField('description', { en: e.target.value })}
                 />
-              </div>
-              <div>
-                <label className="text-sm text-gray-700">Category</label>
-                <select
-                  className="mt-1 block w-full rounded-md border-gray-300"
-                  value={form.category_id ?? ''}
-                  onChange={(e) => setField('category_id', e.target.value ? Number(e.target.value) : null)}
-                >
-                  <option value="">—</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
               </div>
               <div>
                 <label className="text-sm text-gray-700">Price</label>
@@ -177,14 +162,6 @@ export default function ProductEditPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Size</label>
-                <input
-                  className="mt-1 block w-full rounded-md border-gray-300"
-                  value={form.size ?? ''}
-                  onChange={(e) => setField('size', e.target.value)}
-                />
-              </div>
-              <div>
                 <label className="text-sm text-gray-700">Color</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
@@ -193,12 +170,20 @@ export default function ProductEditPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Meters</label>
+                <label className="text-sm text-gray-700">Amount</label>
                 <input
                   type="number"
                   className="mt-1 block w-full rounded-md border-gray-300"
-                  value={Number(form.meters ?? 0)}
-                  onChange={(e) => setField('meters', Number(e.target.value))}
+                  value={Number(form.amount ?? 0)}
+                  onChange={(e) => setField('amount', Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Characteristic</label>
+                <input
+                  className="mt-1 block w-full rounded-md border-gray-300"
+                  value={form.characteristic ?? ''}
+                  onChange={(e) => setField('characteristic', e.target.value)}
                 />
               </div>
               <div>

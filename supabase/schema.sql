@@ -8,6 +8,8 @@ create table if not exists categories (
   created_at timestamptz default now()
 );
 
+alter table if exists categories add column if not exists tags jsonb default '[]'::jsonb not null;
+
 alter table products add column if not exists category_id integer references categories(id) on delete set null;
 
 create table if not exists branches (

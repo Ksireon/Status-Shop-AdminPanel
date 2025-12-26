@@ -57,8 +57,8 @@ export type Database = {
           image: string
           color: string
           price: number
-          meters: number
-          size: string
+          amount: number
+          characteristic: string
           tag: string
           category_id: number | null
           created_at: string
@@ -71,8 +71,8 @@ export type Database = {
           image: string
           color: string
           price: number
-          meters: number
-          size: string
+          amount: number
+          characteristic: string
           tag: string
           category_id?: number | null
           created_at?: string
@@ -85,8 +85,8 @@ export type Database = {
           image?: string
           color?: string
           price?: number
-          meters?: number
-          size?: string
+          amount?: number
+          characteristic?: string
           tag?: string
           category_id?: number | null
           created_at?: string

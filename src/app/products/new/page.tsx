@@ -12,9 +12,6 @@ export default function ProductNewPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Partial<ProductInsert>>(() => {
-    const gen = Array.from({ length: 8 }, () =>
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.charAt(Math.floor(Math.random() * 36)),
-    ).join('')
     return {
       name: { en: '' },
       description: { en: '' },
@@ -22,39 +19,19 @@ export default function ProductNewPage() {
       image: '',
       color: '',
       price: 0,
-      meters: 0,
-      size: '',
-      tag: gen,
-      category_id: null,
+      amount: 0,
+      characteristic: '',
+      tag: '',
     }
   })
-  const [categories, setCategories] = useState<Array<{ id: number; name: string }>>([])
-
+ 
   useEffect(() => {
-    const loadCats = async () => {
-      try {
-        if (
-          !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-          !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-          String(process.env.NEXT_PUBLIC_SUPABASE_URL).includes('example.supabase.co')
-        ) {
-          setCategories([])
-          return
-        }
-        const { data } = await supabase.from('categories').select('*').order('sort_order', { ascending: true })
-        const mapped = (data || []).map((c: any) => ({
-          id: c.id as number,
-          name:
-            typeof c.name === 'object'
-              ? (c.name.en || c.name.uk || '')
-              : String(c.name || ''),
-        }))
-        setCategories(mapped)
-      } catch {
-        setCategories([])
-      }
+    if (!form.tag) {
+      const gen = Array.from({ length: 8 }, () =>
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.charAt(Math.floor(Math.random() * 36)),
+      ).join('')
+      setForm((f) => ({ ...f, tag: gen }))
     }
-    loadCats()
   }, [])
 
   const setField = <K extends keyof ProductInsert>(k: K, v: ProductInsert[K]) =>
@@ -63,33 +40,27 @@ export default function ProductNewPage() {
   const onSave = async () => {
     try {
       setSaving(true)
-      if (
-        !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-        !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-        String(process.env.NEXT_PUBLIC_SUPABASE_URL).includes('example.supabase.co')
-      ) {
-        alert('Supabase не сконфигурирован')
-        return
-      }
-      const payload: ProductInsert = {
+      const payload = {
         name: { en: typeof form.name === 'object' ? (form.name as any).en ?? '' : String(form.name ?? '') },
         description: { en: typeof form.description === 'object' ? (form.description as any).en ?? '' : String(form.description ?? '') },
         type: form.type ?? '',
         image: form.image ?? '',
         color: form.color ?? '',
         price: Number(form.price ?? 0),
-        meters: Number(form.meters ?? 0),
-        size: form.size ?? '',
+        amount: Number(form.amount ?? 0),
+        characteristic: form.characteristic ?? '',
         tag: form.tag ?? '',
-        category_id: form.category_id ?? null,
-        created_at: new Date().toISOString(),
       }
       if (!payload.tag) {
         alert('Введите уникальный Tag продукта')
         return
       }
-      const { error } = await supabase.from('products').insert(payload)
-      if (error) throw error
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) throw new Error('Failed to create product')
       router.push('/products')
       router.refresh()
     } catch (e) {
@@ -104,14 +75,14 @@ export default function ProductNewPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Add New Product</h2>
-          <p className="text-sm text-gray-500">Заполните данные продукта и сохраните</p>
+          <h2 className="text-2xl font-bold text-gray-900">Создать товар</h2>
+          <p className="text-sm text-gray-500">Заполните данные товара и сохраните</p>
         </div>
         <div className="bg-white shadow rounded-xl p-6 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-700">Name</label>
+                <label className="text-sm text-gray-700">Название</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
                   value={typeof form.name === 'object' ? (form.name as any).en ?? '' : String(form.name ?? '')}
@@ -119,7 +90,7 @@ export default function ProductNewPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Description</label>
+                <label className="text-sm text-gray-700">Описание</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
                   value={typeof form.description === 'object' ? (form.description as any).en ?? '' : String(form.description ?? '')}
@@ -127,7 +98,7 @@ export default function ProductNewPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Type</label>
+                <label className="text-sm text-gray-700">Тип</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
                   value={form.type ?? ''}
@@ -135,20 +106,7 @@ export default function ProductNewPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Category</label>
-                <select
-                  className="mt-1 block w-full rounded-md border-gray-300"
-                  value={form.category_id ?? ''}
-                  onChange={(e) => setField('category_id', e.target.value ? Number(e.target.value) : null)}
-                >
-                  <option value="">—</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm text-gray-700">Image URL</label>
+                <label className="text-sm text-gray-700">Ссылка на изображение</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
                   value={form.image ?? ''}
@@ -156,7 +114,7 @@ export default function ProductNewPage() {
                 />
               </div>
             <div>
-              <label className="text-sm text-gray-700">Color</label>
+              <label className="text-sm text-gray-700">Цвет</label>
               <input
                 className="mt-1 block w-full rounded-md border-gray-300"
                 value={form.color ?? ''}
@@ -164,7 +122,7 @@ export default function ProductNewPage() {
               />
             </div>
             <div>
-              <label className="text-sm text-gray-700">Price</label>
+              <label className="text-sm text-gray-700">Цена</label>
               <input
                 type="number"
                 className="mt-1 block w-full rounded-md border-gray-300"
@@ -173,24 +131,24 @@ export default function ProductNewPage() {
               />
             </div>
             <div>
-              <label className="text-sm text-gray-700">Meters</label>
+              <label className="text-sm text-gray-700">Количество</label>
               <input
                 type="number"
                 className="mt-1 block w-full rounded-md border-gray-300"
-                value={Number(form.meters ?? 0)}
-                onChange={(e) => setField('meters', Number(e.target.value))}
+                value={Number(form.amount ?? 0)}
+                onChange={(e) => setField('amount', Number(e.target.value))}
               />
             </div>
             <div>
-              <label className="text-sm text-gray-700">Size</label>
+              <label className="text-sm text-gray-700">Характеристика</label>
               <input
                 className="mt-1 block w-full rounded-md border-gray-300"
-                value={form.size ?? ''}
-                onChange={(e) => setField('size', e.target.value)}
+                value={form.characteristic ?? ''}
+                onChange={(e) => setField('characteristic', e.target.value)}
               />
             </div>
             <div>
-              <label className="text-sm text-gray-700">Tag (auto)</label>
+              <label className="text-sm text-gray-700">Тег (авто)</label>
               <input
                 className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100"
                 value={form.tag ?? ''}
@@ -220,15 +178,15 @@ export default function ProductNewPage() {
                   {typeof form.description === 'object' ? (form.description as any).en ?? '' : String(form.description ?? '') || 'Description'}
                 </div>
                 <div className="mt-2 flex items-center justify-between">
-                  <div className="text-lg font-semibold text-gray-900">UZS {Number(form.price ?? 0).toLocaleString()}</div>
+                  <div className="text-lg font-semibold text-gray-900">UZS {new Intl.NumberFormat('ru-RU').format(Number(form.price ?? 0))}</div>
                   <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">{form.type || 'type'}</span>
                 </div>
                 <div className="mt-2 text-sm text-gray-500">
-                  <p>Size: {form.size || '-'}</p>
-                  <p>Color: {form.color || '-'}</p>
-                  <p>Meters: {Number(form.meters ?? 0) || 0}</p>
+                  <p>Характеристика: {form.characteristic || '-'}</p>
+                  <p>Цвет: {form.color || '-'}</p>
+                  <p>Количество: {Number(form.amount ?? 0) || 0}</p>
                 </div>
-                <div className="mt-2 text-xs text-gray-500">Tag: {form.tag}</div>
+                <div className="mt-2 text-xs text-gray-500">Тег: {form.tag}</div>
               </div>
             </div>
           </div>
@@ -238,13 +196,13 @@ export default function ProductNewPage() {
               disabled={saving}
               className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
             >
-              Save
+              Сохранить
             </button>
             <button
               onClick={() => router.back()}
               className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-semibold text-gray-700"
             >
-              Cancel
+              Отмена
             </button>
           </div>
         </div>

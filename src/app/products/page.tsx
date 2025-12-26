@@ -206,9 +206,9 @@ export default function ProductsPage() {
                           </div>
                         </div>
                         <div className="mt-2 text-sm text-gray-500">
-                          <p>Size: {product.size}</p>
+                          <p>Characteristic: {product.characteristic}</p>
                           <p>Color: {product.color}</p>
-                          <p>Meters: {product.meters}</p>
+                          <p>Amount: {Number(product.amount ?? 0)}</p>
                         </div>
                         <div className="mt-4 flex items-center justify-between">
                           <span className="text-xs text-gray-500">
