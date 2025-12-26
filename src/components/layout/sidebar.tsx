@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
@@ -17,6 +17,7 @@ import {
   Building2,
   Bell,
   FileText,
+  LogOut,
 } from 'lucide-react'
 
 const navigation = [
@@ -36,6 +37,7 @@ const navigation = [
 export function Sidebar() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [role, setRole] = useState('')
   useEffect(() => {
@@ -53,43 +55,29 @@ export function Sidebar() {
   const allowed = (href: string) => {
     if (role === 'owner') return true
     if (role === 'director') {
-      return ['/', '/orders', '/finance', '/products'].includes(href)
+      return ['/', '/orders', '/finance', '/products', '/analytics'].includes(href)
     }
     if (role === 'manager') {
       return ['/', '/orders', '/products'].includes(href)
     }
     return false
   }
-  const items = navigation.filter((i) => allowed(i.href))
+  const items = navigation
 
-  if (!mounted) {
-    return (
-      <>
-        <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-          <div className="flex min-h-0 flex-1 flex-col border-r border-gray-200 bg-white/80 backdrop-blur-md">
-            <div className="flex flex-1 flex-col overflow-y-auto pt-5 pb-4">
-              <div className="flex flex-shrink-0 items-center px-4">
-                <h1 className="text-xl font-bold text-gray-900">Status Shop Admin</h1>
-              </div>
-              <nav className="mt-5 flex-1 space-y-1 px-2">
-                <div className="h-4 bg-gray-100 rounded w-3/4" />
-                <div className="h-4 bg-gray-100 rounded w-2/3 mt-2" />
-                <div className="h-4 bg-gray-100 rounded w-1/2 mt-2" />
-              </nav>
-            </div>
-          </div>
-        </div>
-        <div className="lg:hidden">
-          <button
-            type="button"
-            className="ml-1 inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500"
-            onClick={() => {}}
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-        </div>
-      </>
-    )
+  const itemClass = (href: string) =>
+    `nav-link ${
+      pathname === href ? 'bg-red-100 text-red-700' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+    } group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all ${
+      mounted && !allowed(href) ? 'hidden' : ''
+    }`
+
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } finally {
+      router.push('/login')
+      router.refresh()
+    }
   }
 
   return (
@@ -117,11 +105,7 @@ export function Sidebar() {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`nav-link ${
-                        pathname === item.href
-                          ? 'bg-red-100 text-red-700'
-                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                      } group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all`}
+                      className={itemClass(item.href)}
                       onClick={() => setSidebarOpen(false)}
                     >
                       <item.icon
@@ -132,6 +116,16 @@ export function Sidebar() {
                       {item.name}
                     </Link>
                   ))}
+                  <button
+                    className="nav-link text-white bg-red-600 hover:bg-red-700 group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all w-full"
+                    onClick={() => {
+                      setSidebarOpen(false)
+                      logout()
+                    }}
+                  >
+                    <LogOut className="mr-3 h-5 w-5 flex-shrink-0" />
+                    Выйти
+                  </button>
                 </nav>
               </div>
             </div>
@@ -150,11 +144,7 @@ export function Sidebar() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`nav-link ${
-                    pathname === item.href
-                      ? 'bg-red-100 text-red-700'
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                  } group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all`}
+                  className={itemClass(item.href)}
                 >
                   <item.icon
                     className={`${
@@ -164,6 +154,13 @@ export function Sidebar() {
                   {item.name}
                 </Link>
               ))}
+              <button
+                className="nav-link text-white bg-red-600 hover:bg-red-700 group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all w-full"
+                onClick={logout}
+              >
+                <LogOut className="mr-3 h-5 w-5 flex-shrink-0" />
+                Выйти
+              </button>
             </nav>
           </div>
         </div>
