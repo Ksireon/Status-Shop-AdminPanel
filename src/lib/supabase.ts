@@ -53,12 +53,12 @@ export type Database = {
           id: number
           name: Record<string, unknown>
           description: Record<string, unknown>
-          type: string
+          type: Record<string, unknown>
           image: string
-          color: string
+          color: Record<string, unknown>
           price: number
           amount: number
-          characteristic: string
+          characteristic: Record<string, unknown>
           tag: string
           category_id: number | null
           created_at: string
@@ -67,12 +67,12 @@ export type Database = {
           id?: number
           name: Record<string, unknown>
           description: Record<string, unknown>
-          type: string
+          type: Record<string, unknown>
           image: string
-          color: string
+          color: Record<string, unknown>
           price: number
           amount: number
-          characteristic: string
+          characteristic: Record<string, unknown>
           tag: string
           category_id?: number | null
           created_at?: string
@@ -81,12 +81,12 @@ export type Database = {
           id?: number
           name?: Record<string, unknown>
           description?: Record<string, unknown>
-          type?: string
+          type?: Record<string, unknown>
           image?: string
-          color?: string
+          color?: Record<string, unknown>
           price?: number
           amount?: number
-          characteristic?: string
+          characteristic?: Record<string, unknown>
           tag?: string
           category_id?: number | null
           created_at?: string

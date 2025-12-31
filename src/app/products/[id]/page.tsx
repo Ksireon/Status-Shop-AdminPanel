@@ -13,6 +13,7 @@ export default function ProductViewPage() {
   const router = useRouter()
   const params = useParams()
   const productId = String(params.id as string || '')
+  const productIdNum = Number(productId || NaN)
   const [loading, setLoading] = useState(true)
   const [product, setProduct] = useState<ProductRow | null>(null)
 
@@ -20,7 +21,8 @@ export default function ProductViewPage() {
     const load = async () => {
       try {
         setLoading(true)
-        const { data, error } = await supabase.from('products').select('*').eq('id', productId).single()
+        if (!Number.isFinite(productIdNum)) throw new Error('Invalid product id')
+        const { data, error } = await supabase.from('products').select('*').eq('id', productIdNum).single()
         if (error) throw error
         setProduct(data as ProductRow)
       } catch (e) {
@@ -42,9 +44,9 @@ export default function ProductViewPage() {
   }
 
   const deleteProduct = async () => {
-    if (!productId) return
+    if (!Number.isFinite(productIdNum)) return
     if (!confirm('Удалить товар?')) return
-    const { error } = await supabase.from('products').delete().eq('id', productId)
+    const { error } = await supabase.from('products').delete().eq('id', productIdNum)
     if (error) {
       alert('Не удалось удалить товар')
       return
@@ -81,36 +83,46 @@ export default function ProductViewPage() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
           </div>
         ) : product ? (
-          <div className="bg-white shadow rounded-xl p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-100">
-                  <Image
-                    src={
-                      product.image ||
-                      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNTBMMTUwIDEwMEgxMDBWMTUwSDUwVjEwMEgxMDBWNTBaIiBmaWxsPSIjOUI5QjlCIi8+Cjwvc3ZnPgo='
-                    }
-                    alt={textFromMulti(product.name)}
-                    width={800}
-                    height={400}
-                    className="h-64 w-full object-cover"
-                    unoptimized
-                  />
-                </div>
+          <div className="bg-white shadow rounded-2xl p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="rounded-xl overflow-hidden bg-gray-100">
+                <Image
+                  src={
+                    product.image ||
+                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNTBMMTUwIDEwMEgxMDBWMTUwSDUwVjEwMEgxMDBWNTBaIiBmaWxsPSIjOUI5QjlCIi8+Cjwvc3ZnPgo='
+                  }
+                  alt={textFromMulti(product.name)}
+                  width={900}
+                  height={600}
+                  className="h-80 w-full object-cover"
+                  unoptimized
+                />
               </div>
-              <div className="space-y-2">
-                <div className="text-xl font-semibold text-gray-900">{textFromMulti(product.name)}</div>
-                <div className="text-sm text-gray-500">{textFromMulti(product.description)}</div>
-                <div className="mt-2 flex items-center justify-between">
-                  <div className="text-lg font-semibold text-gray-900">UZS {new Intl.NumberFormat('ru-RU').format(Number(product.price ?? 0))}</div>
-                  <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">{product.type || 'type'}</span>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">{textFromMulti(product.name) || '—'}</h3>
+                  <p className="mt-1 text-sm text-gray-500">{textFromMulti(product.description)}</p>
                 </div>
-                <div className="text-sm text-gray-500">
-                  <p>Характеристика: {product.characteristic || '-'}</p>
-                  <p>Цвет: {product.color || '-'}</p>
-                  <p>Количество: {Number(product.amount ?? 0) || 0}</p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
+                    {textFromMulti(product.type) || 'type'}
+                  </span>
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
+                    {textFromMulti(product.color) || 'color'}
+                  </span>
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
+                    Amount: {Number(product.amount ?? 0)}
+                  </span>
                 </div>
-                <div className="text-xs text-gray-500">Тег: {product.tag}</div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-gray-500">Price</div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      UZS {new Intl.NumberFormat('ru-RU').format(Number(product.price ?? 0))}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500">Tag: {product.tag}</div>
+                </div>
               </div>
             </div>
           </div>

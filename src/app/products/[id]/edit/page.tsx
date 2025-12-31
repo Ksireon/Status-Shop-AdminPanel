@@ -3,32 +3,48 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
-import { supabase, Tables } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
-type ProductRow = Tables['products']['Row']
+type Lang = 'ru' | 'uz' | 'en'
+type FormState = {
+  id?: number
+  name: Record<Lang, string>
+  description: Record<Lang, string>
+  price: number
+  type: Record<Lang, string>
+  color: Record<Lang, string>
+  amount: number
+  characteristic: Record<Lang, string>
+  image: string
+  tag: string
+  category_id?: number | null
+}
 
 export default function ProductEditPage() {
   const router = useRouter()
   const params = useParams()
   const productId = String(params.id as string || '')
+  const productIdNum = Number(productId || NaN)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState<Partial<ProductRow>>({
-    name: { en: '' },
-    description: { en: '' },
+  const [activeLang, setActiveLang] = useState<Lang>('ru')
+  const [form, setForm] = useState<FormState>({
+    name: { ru: '', uz: '', en: '' },
+    description: { ru: '', uz: '', en: '' },
     price: 0,
-    type: '',
-    color: '',
+    type: { ru: '', uz: '', en: '' },
+    color: { ru: '', uz: '', en: '' },
     amount: 0,
-    characteristic: '',
+    characteristic: { ru: '', uz: '', en: '' },
     image: '',
     tag: '',
+    category_id: null,
   })
   const textFromMulti = (value: unknown): string => {
     if (typeof value === 'string') return value
     if (value && typeof value === 'object') {
       const obj = value as Record<string, unknown>
-      return (String(obj['en'] || obj['uk'] || '')).trim()
+      return (String(obj['ru'] || obj['uz'] || obj['en'] || '')).trim()
     }
     return ''
   }
@@ -45,13 +61,41 @@ export default function ProductEditPage() {
           setLoading(false)
           return
         }
+        if (!Number.isFinite(productIdNum)) {
+          setLoading(false)
+          return
+        }
         const { data, error } = await supabase
           .from('products')
           .select('*')
-          .eq('id', productId)
+          .eq('id', productIdNum)
           .single()
         if (error) throw error
-        setForm(data || {})
+        const row = (data as any) || {}
+        const parseToObj = (v: any) => {
+          if (v && typeof v === 'object') return v as Record<string, string>
+          const s = String(v || '')
+          if (s.trim().startsWith('{')) {
+            try {
+              const o = JSON.parse(s)
+              if (o && typeof o === 'object') return o as Record<string, string>
+            } catch {}
+          }
+          return { en: s }
+        }
+        setForm({
+          id: row.id,
+          name: (() => { const o = parseToObj(row.name); return { ru: o.ru || '', uz: o.uz || '', en: o.en || '' } })(),
+          description: (() => { const o = parseToObj(row.description); return { ru: o.ru || '', uz: o.uz || '', en: o.en || '' } })(),
+          price: Number(row.price || 0),
+          type: (() => { const o = parseToObj(row.type); return { ru: o.ru || '', uz: o.uz || '', en: o.en || '' } })(),
+          color: (() => { const o = parseToObj(row.color); return { ru: o.ru || '', uz: o.uz || '', en: o.en || '' } })(),
+          amount: Number(row.amount || 0),
+          characteristic: (() => { const o = parseToObj(row.characteristic); return { ru: o.ru || '', uz: o.uz || '', en: o.en || '' } })(),
+          image: String(row.image || ''),
+          tag: String(row.tag || ''),
+          category_id: row.category_id ?? null,
+        })
       } catch (e) {
         console.warn('Failed to load product', e)
         alert('Не удалось загрузить товар')
@@ -62,8 +106,10 @@ export default function ProductEditPage() {
     if (productId) load()
   }, [productId])
 
-  const setField = <K extends keyof ProductRow>(k: K, v: ProductRow[K]) =>
+  const setField = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }))
+  const setLangField = (k: keyof Pick<FormState, 'name' | 'description' | 'type' | 'color' | 'characteristic'>, v: string) =>
+    setForm((f) => ({ ...f, [k]: { ...f[k], [activeLang]: v } }))
 
   const onSave = async () => {
     try {
@@ -77,18 +123,19 @@ export default function ProductEditPage() {
         return
       }
       const base = {
-        name: form.name ?? { en: '' },
-        description: form.description ?? { en: '' },
+        name: { ru: form.name.ru || '', uz: form.name.uz || '', en: form.name.en || '' },
+        description: { ru: form.description.ru || '', uz: form.description.uz || '', en: form.description.en || '' },
         price: Number(form.price ?? 0),
-        type: form.type ?? '',
-        color: form.color ?? '',
+        type: { ru: form.type.ru || '', uz: form.type.uz || '', en: form.type.en || '' },
+        color: { ru: form.color.ru || '', uz: form.color.uz || '', en: form.color.en || '' },
         image: form.image ?? '',
       }
-      const newCols = { amount: Number(form.amount ?? 0), characteristic: form.characteristic ?? '' }
-      const oldCols = { meters: Number(form.amount ?? 0), size: String(form.characteristic ?? '') }
+      const newCols = { amount: Number(form.amount ?? 0), characteristic: { ru: form.characteristic.ru || '', uz: form.characteristic.uz || '', en: form.characteristic.en || '' } }
+      const oldCols = { meters: Number(form.amount ?? 0), size: String(form.characteristic.en || '') }
       let errMsg: string | null = null
       {
-        const { error } = await supabase.from('products').update({ ...base, ...newCols }).eq('id', productId)
+        if (!Number.isFinite(productIdNum)) throw new Error('Invalid product id')
+        const { error } = await supabase.from('products').update({ ...base, ...newCols }).eq('id', productIdNum)
         errMsg = error?.message || null
       }
       if (errMsg) {
@@ -96,9 +143,15 @@ export default function ProductEditPage() {
           /column .*amount/i.test(errMsg) ||
           /column .*characteristic/i.test(errMsg) ||
           /undefined column/i.test(errMsg) ||
-          /does not exist/i.test(errMsg)
+          /does not exist/i.test(errMsg) ||
+          /jsonb/i.test(errMsg)
         if (needsFallback) {
-          const { error: e2 } = await supabase.from('products').update({ ...base, ...oldCols }).eq('id', productId)
+          const fallbackBase = {
+            ...base,
+            type: String((base.type as any)?.en || ''),
+            color: String((base.color as any)?.en || ''),
+          }
+          const { error: e2 } = await supabase.from('products').update({ ...fallbackBase, ...oldCols }).eq('id', productIdNum)
           if (e2) throw e2
         } else {
           throw new Error(errMsg)
@@ -127,21 +180,38 @@ export default function ProductEditPage() {
           </div>
         ) : (
           <div className="bg-white shadow rounded-lg p-6 space-y-4">
+            <div className="flex gap-2 mb-2">
+              <button
+                type="button"
+                onClick={() => setActiveLang('ru')}
+                className={`px-3 py-1 rounded-md border text-sm ${activeLang === 'ru' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700'}`}
+              >Русский</button>
+              <button
+                type="button"
+                onClick={() => setActiveLang('uz')}
+                className={`px-3 py-1 rounded-md border text-sm ${activeLang === 'uz' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700'}`}
+              >O‘zbekcha</button>
+              <button
+                type="button"
+                onClick={() => setActiveLang('en')}
+                className={`px-3 py-1 rounded-md border text-sm ${activeLang === 'en' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700'}`}
+              >English</button>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-700">Name</label>
+                <label className="text-sm text-gray-700">Name ({activeLang.toUpperCase()})</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
-                  value={textFromMulti(form.name)}
-                  onChange={(e) => setField('name', { en: e.target.value })}
+                  value={form.name[activeLang] || ''}
+                  onChange={(e) => setLangField('name', e.target.value)}
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Description</label>
+                <label className="text-sm text-gray-700">Description ({activeLang.toUpperCase()})</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
-                  value={textFromMulti(form.description)}
-                  onChange={(e) => setField('description', { en: e.target.value })}
+                  value={form.description[activeLang] || ''}
+                  onChange={(e) => setLangField('description', e.target.value)}
                 />
               </div>
               <div>
@@ -154,19 +224,19 @@ export default function ProductEditPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Type</label>
+                <label className="text-sm text-gray-700">Type ({activeLang.toUpperCase()})</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
-                  value={form.type ?? ''}
-                  onChange={(e) => setField('type', e.target.value)}
+                  value={form.type[activeLang] || ''}
+                  onChange={(e) => setLangField('type', e.target.value)}
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Color</label>
+                <label className="text-sm text-gray-700">Color ({activeLang.toUpperCase()})</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
-                  value={form.color ?? ''}
-                  onChange={(e) => setField('color', e.target.value)}
+                  value={form.color[activeLang] || ''}
+                  onChange={(e) => setLangField('color', e.target.value)}
                 />
               </div>
               <div>
@@ -179,11 +249,11 @@ export default function ProductEditPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Characteristic</label>
+                <label className="text-sm text-gray-700">Characteristic ({activeLang.toUpperCase()})</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
-                  value={form.characteristic ?? ''}
-                  onChange={(e) => setField('characteristic', e.target.value)}
+                  value={form.characteristic[activeLang] || ''}
+                  onChange={(e) => setLangField('characteristic', e.target.value)}
                 />
               </div>
               <div>

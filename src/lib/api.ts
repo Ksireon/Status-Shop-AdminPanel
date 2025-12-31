@@ -42,12 +42,12 @@ export interface Product {
   id: number
   name: Record<string, unknown>
   description: Record<string, unknown>
-  type: string
+  type: Record<string, unknown>
   image: string
-  color: string
+  color: Record<string, unknown>
   price: number
-  meters: number
-  size: string
+  amount: number
+  characteristic: Record<string, unknown>
   tag: string
   created_at: string
 }

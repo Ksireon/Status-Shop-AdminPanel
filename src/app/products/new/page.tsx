@@ -3,27 +3,41 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
-import { supabase, Tables } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 
-type ProductInsert = Tables['products']['Insert']
+type Lang = 'ru' | 'uz' | 'en'
+
+type FormState = {
+  name: Record<Lang, string>
+  description: Record<Lang, string>
+  type: Record<Lang, string>
+  color: Record<Lang, string>
+  characteristic: Record<Lang, string>
+  image: string
+  price: number
+  amount: number
+  tag: string
+}
 
 export default function ProductNewPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState<Partial<ProductInsert>>(() => {
+  const [activeLang, setActiveLang] = useState<Lang>('ru')
+  const [form, setForm] = useState<FormState>(() => {
     return {
-      name: { en: '' },
-      description: { en: '' },
-      type: '',
+      name: { ru: '', uz: '', en: '' },
+      description: { ru: '', uz: '', en: '' },
+      type: { ru: '', uz: '', en: '' },
+      color: { ru: '', uz: '', en: '' },
+      characteristic: { ru: '', uz: '', en: '' },
       image: '',
-      color: '',
       price: 0,
       amount: 0,
-      characteristic: '',
       tag: '',
     }
   })
+  const [imageFile, setImageFile] = useState<File | null>(null)
  
   useEffect(() => {
     if (!form.tag) {
@@ -34,22 +48,33 @@ export default function ProductNewPage() {
     }
   }, [])
 
-  const setField = <K extends keyof ProductInsert>(k: K, v: ProductInsert[K]) =>
-    setForm((f) => ({ ...f, [k]: v }))
+  const setLangField = (k: keyof Pick<FormState, 'name' | 'description' | 'type' | 'color' | 'characteristic'>, v: string) =>
+    setForm((f) => ({ ...f, [k]: { ...f[k], [activeLang]: v } }))
 
   const onSave = async () => {
     try {
       setSaving(true)
+      // upload image if selected
+      let imageUrl = form.image || ''
+      if (imageFile) {
+        const fd = new FormData()
+        fd.append('file', imageFile)
+        fd.append('tag', form.tag || '')
+        const resUp = await fetch('/api/uploads/product-image', { method: 'POST', body: fd })
+        if (!resUp.ok) throw new Error('Failed to upload image')
+        const up = await resUp.json()
+        imageUrl = up.url || ''
+      }
       const payload = {
-        name: { en: typeof form.name === 'object' ? (form.name as any).en ?? '' : String(form.name ?? '') },
-        description: { en: typeof form.description === 'object' ? (form.description as any).en ?? '' : String(form.description ?? '') },
-        type: form.type ?? '',
-        image: form.image ?? '',
-        color: form.color ?? '',
-        price: Number(form.price ?? 0),
-        amount: Number(form.amount ?? 0),
-        characteristic: form.characteristic ?? '',
-        tag: form.tag ?? '',
+        name: { ...form.name },
+        description: { ...form.description },
+        type: { ...form.type },
+        image: imageUrl,
+        color: { ...form.color },
+        price: Number(form.price || 0),
+        amount: Number(form.amount || 0),
+        characteristic: { ...form.characteristic },
+        tag: form.tag || '',
       }
       if (!payload.tag) {
         alert('Введите уникальный Tag продукта')
@@ -71,6 +96,16 @@ export default function ProductNewPage() {
     }
   }
 
+  const tab = (l: Lang, label: string) => (
+    <button
+      type="button"
+      onClick={() => setActiveLang(l)}
+      className={`px-3 py-1 rounded-md border text-sm ${activeLang === l ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700'}`}
+    >
+      {label}
+    </button>
+  )
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -79,46 +114,74 @@ export default function ProductNewPage() {
           <p className="text-sm text-gray-500">Заполните данные товара и сохраните</p>
         </div>
         <div className="bg-white shadow rounded-xl p-6 space-y-6">
+          <div className="flex gap-2">{tab('ru','Русский')}{tab('uz','O‘zbekcha')}{tab('en','English')}</div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-700">Название</label>
+                <label className="text-sm text-gray-700">Название ({activeLang.toUpperCase()})</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
-                  value={typeof form.name === 'object' ? (form.name as any).en ?? '' : String(form.name ?? '')}
-                  onChange={(e) => setField('name', { en: e.target.value })}
+                  value={form.name[activeLang] || ''}
+                  onChange={(e) => setLangField('name', e.target.value)}
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Описание</label>
+                <label className="text-sm text-gray-700">Описание ({activeLang.toUpperCase()})</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
-                  value={typeof form.description === 'object' ? (form.description as any).en ?? '' : String(form.description ?? '')}
-                  onChange={(e) => setField('description', { en: e.target.value })}
+                  value={form.description[activeLang] || ''}
+                  onChange={(e) => setLangField('description', e.target.value)}
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Тип</label>
+                <label className="text-sm text-gray-700">Тип ({activeLang.toUpperCase()})</label>
                 <input
                   className="mt-1 block w-full rounded-md border-gray-300"
-                  value={form.type ?? ''}
-                  onChange={(e) => setField('type', e.target.value)}
+                  value={form.type[activeLang] || ''}
+                  onChange={(e) => setLangField('type', e.target.value)}
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-700">Ссылка на изображение</label>
-                <input
-                  className="mt-1 block w-full rounded-md border-gray-300"
-                  value={form.image ?? ''}
-                  onChange={(e) => setField('image', e.target.value)}
-                />
+                <label className="text-sm text-gray-700">Изображение товара</label>
+                <div
+                  className="mt-1 flex flex-col items-center justify-center rounded-md border-2 border-dashed border-gray-300 p-4 text-gray-600"
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    const file = e.dataTransfer.files?.[0]
+                    if (file) {
+                      setImageFile(file)
+                      const url = URL.createObjectURL(file)
+                      setForm((f) => ({ ...f, image: url }))
+                    }
+                  }}
+                >
+                  <p className="text-sm">Перетащите файл сюда или выберите вручную</p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="mt-2"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null
+                      setImageFile(file)
+                      if (file) {
+                        const url = URL.createObjectURL(file)
+                        setForm((f) => ({ ...f, image: url }))
+                      }
+                    }}
+                  />
+                </div>
               </div>
             <div>
-              <label className="text-sm text-gray-700">Цвет</label>
+              <label className="text-sm text-gray-700">Цвет ({activeLang.toUpperCase()})</label>
               <input
                 className="mt-1 block w-full rounded-md border-gray-300"
-                value={form.color ?? ''}
-                onChange={(e) => setField('color', e.target.value)}
+                value={form.color[activeLang] || ''}
+                onChange={(e) => setLangField('color', e.target.value)}
               />
             </div>
             <div>
@@ -126,8 +189,8 @@ export default function ProductNewPage() {
               <input
                 type="number"
                 className="mt-1 block w-full rounded-md border-gray-300"
-                value={Number(form.price ?? 0)}
-                onChange={(e) => setField('price', Number(e.target.value))}
+                value={Number(form.price || 0)}
+                onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))}
               />
             </div>
             <div>
@@ -135,23 +198,23 @@ export default function ProductNewPage() {
               <input
                 type="number"
                 className="mt-1 block w-full rounded-md border-gray-300"
-                value={Number(form.amount ?? 0)}
-                onChange={(e) => setField('amount', Number(e.target.value))}
+                value={Number(form.amount || 0)}
+                onChange={(e) => setForm((f) => ({ ...f, amount: Number(e.target.value) }))}
               />
             </div>
             <div>
-              <label className="text-sm text-gray-700">Характеристика</label>
+              <label className="text-sm text-gray-700">Характеристика ({activeLang.toUpperCase()})</label>
               <input
                 className="mt-1 block w-full rounded-md border-gray-300"
-                value={form.characteristic ?? ''}
-                onChange={(e) => setField('characteristic', e.target.value)}
+                value={form.characteristic[activeLang] || ''}
+                onChange={(e) => setLangField('characteristic', e.target.value)}
               />
             </div>
             <div>
               <label className="text-sm text-gray-700">Тег (авто)</label>
               <input
                 className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100"
-                value={form.tag ?? ''}
+                value={form.tag || ''}
                 readOnly
               />
             </div>
@@ -172,19 +235,19 @@ export default function ProductNewPage() {
               </div>
               <div className="mt-4">
                 <div className="text-lg font-semibold text-gray-900">
-                  {typeof form.name === 'object' ? (form.name as any).en ?? '' : String(form.name ?? '') || 'Product name'}
+                  {(form.name[activeLang] || form.name.en || '') || 'Product name'}
                 </div>
                 <div className="text-sm text-gray-500">
-                  {typeof form.description === 'object' ? (form.description as any).en ?? '' : String(form.description ?? '') || 'Description'}
+                  {(form.description[activeLang] || form.description.en || '') || 'Description'}
                 </div>
                 <div className="mt-2 flex items-center justify-between">
-                  <div className="text-lg font-semibold text-gray-900">UZS {new Intl.NumberFormat('ru-RU').format(Number(form.price ?? 0))}</div>
-                  <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">{form.type || 'type'}</span>
+                  <div className="text-lg font-semibold text-gray-900">UZS {new Intl.NumberFormat('ru-RU').format(Number(form.price || 0))}</div>
+                  <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">{form.type[activeLang] || form.type.en || 'type'}</span>
                 </div>
                 <div className="mt-2 text-sm text-gray-500">
-                  <p>Характеристика: {form.characteristic || '-'}</p>
-                  <p>Цвет: {form.color || '-'}</p>
-                  <p>Количество: {Number(form.amount ?? 0) || 0}</p>
+                  <p>Характеристика: {form.characteristic[activeLang] || form.characteristic.en || '-'}</p>
+                  <p>Цвет: {form.color[activeLang] || form.color.en || '-'}</p>
+                  <p>Количество: {Number(form.amount || 0)}</p>
                 </div>
                 <div className="mt-2 text-xs text-gray-500">Тег: {form.tag}</div>
               </div>

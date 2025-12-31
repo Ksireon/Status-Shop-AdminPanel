@@ -50,7 +50,7 @@ export default function ProductsPage() {
         )
       }
       if (typeFilter !== 'all') {
-        list = list.filter((p) => (p.type || '') === typeFilter)
+        list = list.filter((p) => textFromMulti(p.type).toLowerCase() === typeFilter.toLowerCase())
       }
       if (categoryFilter !== 'all') {
         list = list.filter((p) => (p.category_id ?? null) === categoryFilter)
@@ -132,8 +132,8 @@ export default function ProductsPage() {
                 onChange={(e) => setTypeFilter(e.target.value)}
               >
                 <option value="all">All</option>
-                {Array.from(new Set(products.map((p) => p.type).filter(Boolean))).map((t) => (
-                  <option key={t} value={t || ''}>
+                {Array.from(new Set(products.map((p) => textFromMulti(p.type)).filter((s) => !!s))).map((t) => (
+                  <option key={t} value={t}>
                     {t}
                   </option>
                 ))}
@@ -167,9 +167,9 @@ export default function ProductsPage() {
             ) : (
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {products.map((product) => (
-                  <div key={product.id} className="card hover-lift border border-gray-200">
+                  <div key={product.id} className="rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
                     <div className="p-4">
-                      <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-200">
+                      <div className="rounded-xl overflow-hidden bg-gray-100">
                         <Image
                           src={
                             product.image ||
@@ -178,46 +178,52 @@ export default function ProductsPage() {
                           alt={textFromMulti(product.name)}
                           width={800}
                           height={400}
-                          className="h-48 w-full object-cover"
+                          className="h-56 w-full object-cover"
                           unoptimized
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                         />
                       </div>
-                      <div className="mt-4">
-                        <h3 className="text-lg font-medium text-gray-900">
-                          {textFromMulti(product.name)}
-                        </h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                          {textFromMulti(product.description)}
-                        </p>
-                        <div className="mt-3 flex items-center justify-between">
-                          <p className="text-lg font-semibold text-gray-900">
-                            UZS {Number(product.price).toLocaleString()}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
-                              {product.type}
-                            </span>
-                            {product.category_id && (
-                              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
-                                {categories.find((c) => c.id === product.category_id)?.name || 'Category'}
-                              </span>
-                            )}
+                      <div className="mt-4 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="text-xl font-semibold text-gray-900">
+                              {textFromMulti(product.name) || '—'}
+                            </h3>
+                            <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                              {textFromMulti(product.description)}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500">Price</div>
+                            <div className="text-lg font-bold text-gray-900">
+                              UZS {Number(product.price).toLocaleString()}
+                            </div>
                           </div>
                         </div>
-                        <div className="mt-2 text-sm text-gray-500">
-                          <p>Characteristic: {product.characteristic}</p>
-                          <p>Color: {product.color}</p>
-                          <p>Amount: {Number(product.amount ?? 0)}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">
+                            {textFromMulti(product.type) || 'type'}
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">
+                            {textFromMulti(product.color) || 'color'}
+                          </span>
+                          {product.category_id && (
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">
+                              {categories.find((c) => c.id === product.category_id)?.name || 'Category'}
+                            </span>
+                          )}
+                          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">
+                            Amount: {Number(product.amount ?? 0)}
+                          </span>
                         </div>
-                        <div className="mt-4 flex items-center justify-between">
+                        <div className="flex items-center justify-between pt-2">
                           <span className="text-xs text-gray-500">
                             Tag: {product.tag}
                           </span>
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-3">
                             <Link
                               href={`/products/${product.id}`}
-                              className="text-red-600 hover:text-red-700"
+                              className="text-gray-600 hover:text-gray-900"
                               title="View Details"
                             >
                               <Eye className="h-4 w-4" />

@@ -15,6 +15,7 @@ import {
   Package2,
   Wallet,
   Building2,
+  MessageSquare,
   Bell,
   FileText,
   LogOut,
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Users', href: '/users', icon: Users },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
+  { name: 'Chat', href: '/chat', icon: MessageSquare },
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Cart', href: '/cart', icon: Package2 },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
@@ -55,10 +57,10 @@ export function Sidebar() {
   const allowed = (href: string) => {
     if (role === 'owner') return true
     if (role === 'director') {
-      return ['/', '/orders', '/finance', '/products', '/analytics'].includes(href)
+      return ['/', '/orders', '/finance', '/products', '/analytics', '/chat'].includes(href)
     }
     if (role === 'manager') {
-      return ['/', '/orders', '/products'].includes(href)
+      return ['/', '/orders', '/products', '/chat'].includes(href)
     }
     return false
   }

@@ -12,7 +12,8 @@ import {
   CheckCircle, 
   XCircle, 
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  MessageSquarePlus
 } from 'lucide-react'
 
 interface SystemStatus {
@@ -32,14 +33,15 @@ export default function SystemPage() {
   const [systemStatus, setSystemStatus] = useState<SystemStatus>({
     supabase: {
       status: 'connected',
-      lastCheck: new Date().toISOString(),
+      lastCheck: '',
     },
     api: {
       status: 'healthy',
-      lastCheck: new Date().toISOString(),
+      lastCheck: '',
     },
   })
   const [loading, setLoading] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
 
   const checkSystemHealth = async () => {
     setLoading(true)
@@ -107,6 +109,9 @@ export default function SystemPage() {
     
     return () => clearInterval(interval)
   }, [])
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
 
   const getStatusIcon = (status: 'connected' | 'healthy' | 'error') => {
     switch (status) {
@@ -151,6 +156,28 @@ export default function SystemPage() {
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
+            <button
+              onClick={async () => {
+                setLoading(true)
+                try {
+                  const res = await fetch('/api/system/init-chat', { method: 'POST' })
+                  if (!res.ok) {
+                    const t = await res.text()
+                    throw new Error(t || 'Init failed')
+                  }
+                  alert('Chat schema initialized')
+                } catch (e: any) {
+                  alert((e?.message || 'Failed to initialize chat schema').slice(0, 500))
+                } finally {
+                  setLoading(false)
+                }
+              }}
+              disabled={loading}
+              className="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              <MessageSquarePlus className="h-4 w-4 mr-2" />
+              Init Chat
+            </button>
           </div>
         </div>
 
@@ -189,8 +216,10 @@ export default function SystemPage() {
                 
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">Last Check</span>
-                  <span className="text-sm text-gray-900">
-                    {format(new Date(systemStatus.supabase.lastCheck), 'HH:mm:ss')}
+                  <span className="text-sm text-gray-900" suppressHydrationWarning>
+                    {hydrated && systemStatus.supabase.lastCheck
+                      ? format(new Date(systemStatus.supabase.lastCheck), 'HH:mm:ss')
+                      : '—'}
                   </span>
                 </div>
               </div>
@@ -230,8 +259,10 @@ export default function SystemPage() {
                 
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">Last Check</span>
-                  <span className="text-sm text-gray-900">
-                    {format(new Date(systemStatus.api.lastCheck), 'HH:mm:ss')}
+                  <span className="text-sm text-gray-900" suppressHydrationWarning>
+                    {hydrated && systemStatus.api.lastCheck
+                      ? format(new Date(systemStatus.api.lastCheck), 'HH:mm:ss')
+                      : '—'}
                   </span>
                 </div>
               </div>

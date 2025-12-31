@@ -12,25 +12,33 @@ export async function POST(req: Request) {
     if (role !== 'owner') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    const body = await req.json()
+    const contentType = req.headers.get('content-type') || ''
+    const body = contentType.includes('application/json') ? await req.json() : await req.formData()
     const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     if (!url || !key) {
       return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
     }
     const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+    const isForm = body instanceof FormData
+    const extract = (k: string) => isForm ? body.get(k) : (body as any)[k]
+    const parseObj = (v: any) => {
+      if (typeof v === 'object' && v !== null) return v
+      const s = String(v || '')
+      return { en: s }
+    }
     const base = {
-      name: typeof body.name === 'object' ? body.name : { en: String(body.name || '') },
-      description: typeof body.description === 'object' ? body.description : { en: String(body.description || '') },
-      type: String(body.type || ''),
-      image: String(body.image || ''),
-      color: String(body.color || ''),
-      price: Number(body.price || 0),
-      tag: String(body.tag || ''),
+      name: parseObj(extract('name')),
+      description: parseObj(extract('description')),
+      type: parseObj(extract('type')),
+      image: String(extract('image') || ''),
+      color: parseObj(extract('color')),
+      price: Number(extract('price') || 0),
+      tag: String(extract('tag') || ''),
       created_at: new Date().toISOString(),
     }
-    const newCols = { amount: Number(body.amount || 0), characteristic: String(body.characteristic || '') }
-    const oldCols = { meters: Number(body.amount || 0), size: String(body.characteristic || '') }
+    const newCols = { amount: Number(extract('amount') || 0), characteristic: parseObj(extract('characteristic')) }
+    const oldCols = { meters: Number(extract('amount') || 0), size: String(extract('characteristic') || '') }
     if (!base.tag) {
       return NextResponse.json({ error: 'tag is required' }, { status: 400 })
     }
@@ -47,20 +55,48 @@ export async function POST(req: Request) {
         /column .*amount/i.test(errMsg) ||
         /column .*characteristic/i.test(errMsg) ||
         /undefined column/i.test(errMsg) ||
-        /does not exist/i.test(errMsg)
+        /does not exist/i.test(errMsg) ||
+        /jsonb/i.test(errMsg)
       if (needsFallback) {
-        const { data: d2, error: e2 } = await supabase.from('products').insert({ ...base, ...oldCols }).select('*').single()
-        if (e2) {
-          return NextResponse.json({ error: e2.message }, { status: 500 })
+        const fallbackBase = { 
+          ...base, 
+          type: typeof base.type === 'object' ? (base.type as any).en || '' : String(base.type || ''),
+          color: typeof base.color === 'object' ? (base.color as any).en || '' : String(base.color || ''),
         }
+        const fallbackOldCols = { ...oldCols, size: typeof newCols.characteristic === 'object' ? (newCols.characteristic as any).en || '' : String(oldCols.size || '') }
+        const { data: d2, error: e2 } = await supabase.from('products').insert({ ...fallbackBase, ...fallbackOldCols }).select('*').single()
+        if (e2) {
+          // handle duplicate tag gracefully: regenerate and retry once
+          const dup = /duplicate key/i.test(e2.message || '')
+          if (dup) {
+            const rand = Array.from({ length: 4 }, () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.charAt(Math.floor(Math.random() * 36))).join('')
+            const newTag = `${fallbackBase.tag}-${rand}`
+            const { data: d3, error: e3 } = await supabase.from('products').insert({ ...fallbackBase, ...fallbackOldCols, tag: newTag }).select('*').single()
+            if (e3) return NextResponse.json({ error: e3.message }, { status: 500 })
+            data = d3
+          } else {
+            return NextResponse.json({ error: e2.message }, { status: 500 })
+          }
+        } else {
         data = d2
+        }
       } else {
-        return NextResponse.json({ error: errMsg }, { status: 500 })
+        // duplicate tag on new schema: regenerate and retry
+        const dup = /duplicate key/i.test(errMsg || '')
+        if (dup) {
+          const rand = Array.from({ length: 4 }, () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.charAt(Math.floor(Math.random() * 36))).join('')
+          const newTag = `${base.tag}-${rand}`
+          const { data: d4, error: e4 } = await supabase.from('products').insert({ ...base, ...newCols, tag: newTag }).select('*').single()
+          if (e4) return NextResponse.json({ error: e4.message }, { status: 500 })
+          data = d4
+        } else {
+          return NextResponse.json({ error: errMsg }, { status: 500 })
+        }
       }
     }
     // append tag to category resolved by type (name.en === type)
     try {
-      const typeName = base.type?.trim()
+      const typeName = typeof base.type === 'object' ? String((base.type as any).en || '').trim() : String(base.type || '').trim()
       if (typeName) {
         const { data: cat } = await supabase
           .from('categories')
