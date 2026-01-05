@@ -20,8 +20,8 @@ function getRole(req: NextRequest): 'owner' | 'director' | 'manager' | null {
 
 function isAllowed(pathname: string, role: 'owner' | 'director' | 'manager') {
   if (role === 'owner') return true
-  const allowedDirector = ['/', '/orders', '/finance', '/products', '/analytics']
-  const allowedManager = ['/', '/orders', '/products']
+  const allowedDirector = ['/', '/orders', '/finance', '/products', '/analytics', '/chat']
+  const allowedManager = ['/', '/orders', '/products', '/chat']
   const dynamicAllowed = (p: string) =>
     p.startsWith('/orders/') ||
     (p.startsWith('/products/') && !p.endsWith('/edit') && !p.endsWith('/new'))

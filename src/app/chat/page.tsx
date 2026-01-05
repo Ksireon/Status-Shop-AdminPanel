@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { supabase } from '@/lib/supabase'
 
-type Room = { id: string, user_id: string, assigned_role?: string | null, last_message_at?: string | null }
+type Room = { id: string, user_id: string, assigned_role?: string | null, status?: string | null, closed_at?: string | null, last_message_at?: string | null }
 type Msg = { id: string, room_id: string, sender_type: 'user' | 'staff', content: string, created_at: string }
 
 export default function ChatAdminPage() {
@@ -14,11 +14,12 @@ export default function ChatAdminPage() {
   const [text, setText] = useState('')
   const [role, setRole] = useState<'owner' | 'director' | 'manager' | null>(null)
   const [pending, setPending] = useState(false)
+  const activeRoom = active ? rooms.find((r) => r.id === active) : null
 
   useEffect(() => {
     const loadRooms = async () => {
       const cookie = typeof document !== 'undefined' ? document.cookie : ''
-      const match = cookie.match(/(?:^|;\\s*)admin_role=([^;]+)/)
+      const match = cookie.match(/(?:^|;\\s*)admin_role_public=([^;]+)/)
       const r = (match?.[1] || '') as any
       const currentRole = (r === 'owner' || r === 'director' || r === 'manager') ? r : null
       setRole(currentRole)
@@ -28,10 +29,44 @@ export default function ChatAdminPage() {
       setRooms((data as any) || [])
     }
     loadRooms()
+
+    const cookie = typeof document !== 'undefined' ? document.cookie : ''
+    const match = cookie.match(/(?:^|;\\s*)admin_role_public=([^;]+)/)
+    const r = (match?.[1] || '') as any
+    const currentRole = (r === 'owner' || r === 'director' || r === 'manager') ? r : null
+    const filter = currentRole ? `assigned_role=eq.${currentRole}` : undefined
+    const roomsChannel = supabase
+      .channel(`chat-rooms-${currentRole || 'all'}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_rooms', ...(filter ? { filter } : {}) }, (payload) => {
+        const rec = payload.new as any
+        if (!rec?.id) return
+        setRooms((prev) => {
+          const next = prev.slice()
+          const idx = next.findIndex((r) => r.id === rec.id)
+          if (currentRole && rec.assigned_role !== currentRole) {
+            if (idx >= 0) next.splice(idx, 1)
+          } else if (idx >= 0) {
+            next[idx] = rec
+          } else {
+            next.push(rec)
+          }
+          next.sort((a, b) => {
+            const aa = a.last_message_at ? new Date(a.last_message_at).getTime() : 0
+            const bb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0
+            return bb - aa
+          })
+          return next
+        })
+      })
+      .subscribe()
+    return () => {
+      supabase.removeChannel(roomsChannel)
+    }
   }, [])
 
   useEffect(() => {
     if (!active) return
+    setMessages([])
     const loadMsgs = async () => {
       const { data } = await supabase.from('chat_messages').select('*').eq('room_id', active).order('created_at', { ascending: true }).limit(200)
       setMessages((data as any) || [])
@@ -39,12 +74,12 @@ export default function ChatAdminPage() {
     loadMsgs()
     const ch = supabase
       .channel(`chat-${active}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${active}` }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${active}` }, (payload) => {
         setMessages((prev) => {
-          const next = [...prev]
           const rec = payload.new as any
-          if (rec) next.push(rec)
-          return next
+          if (!rec?.id) return prev
+          if (prev.some((m) => m.id === rec.id)) return prev
+          return [...prev, rec].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         })
       })
       .subscribe()
@@ -53,6 +88,7 @@ export default function ChatAdminPage() {
 
   const send = async () => {
     if (!active || !text.trim()) return
+    if (activeRoom?.status === 'closed' || activeRoom?.closed_at) return
     await supabase.from('chat_messages').insert({ room_id: active, sender_type: 'staff', content: text.trim() })
     setText('')
   }
@@ -136,6 +172,9 @@ export default function ChatAdminPage() {
             <div className="text-sm text-gray-500">Выберите диалог слева</div>
           ) : (
             <div className="flex flex-col h-[60vh]">
+              {(activeRoom?.status === 'closed' || activeRoom?.closed_at) && (
+                <div className="mb-2 text-sm text-gray-500">Диалог закрыт</div>
+              )}
               <div className="flex-1 overflow-auto space-y-2">
                 {messages.map(m => (
                   <div key={m.id} className={`max-w-[60%] p-2 rounded-md ${m.sender_type === 'staff' ? 'bg-red-100 ml-auto' : 'bg-gray-100'}`}>
@@ -145,8 +184,20 @@ export default function ChatAdminPage() {
                 ))}
               </div>
               <div className="mt-3 flex gap-2">
-                <input className="flex-1 rounded-md border px-2 py-1" value={text} onChange={e => setText(e.target.value)} placeholder="Напишите ответ..." />
-                <button onClick={send} className="rounded-md bg-red-600 text-white px-3 py-1">Отправить</button>
+                <input
+                  className="flex-1 rounded-md border px-2 py-1"
+                  value={text}
+                  onChange={e => setText(e.target.value)}
+                  placeholder="Напишите ответ..."
+                  disabled={activeRoom?.status === 'closed' || !!activeRoom?.closed_at}
+                />
+                <button
+                  onClick={send}
+                  className="rounded-md bg-red-600 text-white px-3 py-1 disabled:opacity-50"
+                  disabled={activeRoom?.status === 'closed' || !!activeRoom?.closed_at}
+                >
+                  Отправить
+                </button>
               </div>
             </div>
           )}
